@@ -16,4 +16,11 @@ public class RegisterRequest {
         return password == null || password.isBlank();
     }
 
+    public RegisterRequest(String email, String userName, String phoneNumber, String role, String password) {
+        this.email = email;
+        this.userName = userName;
+        this.phoneNumber = phoneNumber;
+        this.role = role;
+        this.password = password;
+    }
 }

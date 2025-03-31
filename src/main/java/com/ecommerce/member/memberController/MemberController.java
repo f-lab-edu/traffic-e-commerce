@@ -21,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 @RequiredArgsConstructor
 public class MemberController {
 
+    private final JwtUtil jwtUtil;
     private final UserService userService;
 
     @PostMapping("/member/users/registration")
@@ -30,7 +31,7 @@ public class MemberController {
 
     @PostMapping("/member/users/modify")
     public UserEntity modifyUser(@RequestBody ModifyUserRequest dto, @RequestHeader("Authorization") String token) {
-        String email = JwtUtil.extractEmail(token);
+        String email = jwtUtil.extractEmail(token);
         return userService.modifyUser(email, dto);
     }
 

@@ -17,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 @RequiredArgsConstructor
 public class UserService {
 
+    private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
 
     public UserEntity registerUser(RegisterRequest registerRequest) throws NoSuchAlgorithmException {
@@ -33,7 +34,8 @@ public class UserService {
     }
 
     public UserEntity modifyUser(String email, ModifyUserRequest dto) {
-        var user = userRepository.findByEmail(email).orElseThrow();
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         user.userName = dto.userName;
         user.phoneNumber = dto.phoneNumber;
@@ -44,7 +46,7 @@ public class UserService {
 
     public LoginResponse responseToken(LoginRequest loginRequest) throws NoSuchAlgorithmException {
         UserEntity loginUser = checkValidPasswd(loginRequest);
-        String token = JwtUtil.generateToken(loginUser.email);
+        String token = jwtUtil.generateToken(loginUser.email);
 
         return new LoginResponse(token);
     }
@@ -54,14 +56,15 @@ public class UserService {
         String hashWithSalt = PasswordUtil.hashWithSalt(loginRequest.password, user.salt);
 
         if (!hashWithSalt.equals(user.password)) {
-            throw new IllegalArgumentException("It has not valid password");
+            throw new IllegalArgumentException("Not valid password");
         }
 
         return user;
     }
 
     private UserEntity getUserByEmail(LoginRequest loginRequest) {
-        return userRepository.findByEmail(loginRequest.email).orElseThrow();
+        return userRepository.findByEmail(loginRequest.email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
 
