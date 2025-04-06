@@ -4,12 +4,15 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://127.0.0.1:3306/ecommerce
-    username: root
-    password: User#1234
+    username:
+    password:
   jpa:
-    generate-ddl: true
+    generate-ddl: false
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
+      show_sql: true
+      format_sql: true
+
 
 logging:
   level:
@@ -21,3 +24,7 @@ logging:
             sql:
               BasicBinder: TRACE
 
+
+
+jwt:
+  secret: ""
