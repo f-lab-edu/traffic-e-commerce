@@ -4,8 +4,7 @@ import com.ecommerce.member.dto.requset.LoginRequest;
 import com.ecommerce.member.dto.requset.ModifyUserRequest;
 import com.ecommerce.member.dto.requset.RegisterRequest;
 import com.ecommerce.member.dto.response.LoginResponse;
-import com.ecommerce.member.memberEntity.UserEntity;
-import com.ecommerce.member.memberRepository.UserRepository;
+import com.ecommerce.member.memberEntity.Users;
 import com.ecommerce.util.JsonUtilsDeco;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,20 +15,10 @@ import java.security.NoSuchAlgorithmException;
 
 import static org.assertj.core.api.BDDAssertions.then;
 
-//@SpringBootTest(classes ={
-//          UserEntity.class
-//        , UserService.class
-//        , JwtUtil.class
-//        , JwtKeyProvider.class
-//        , PasswordUtil.class})
-//@EnableJpaRepositories(basePackages ="com.ecommerce.member.memberRepository")
-//@EntityScan(basePackages ="com.ecommerce.member.UserEntity")
-//@DataJpaTest
 @SpringBootTest
 class UserServiceTest {
 
     @Autowired private UserService sut;
-    @Autowired private UserRepository userRepository;
 
 
     @Test
@@ -44,10 +33,10 @@ class UserServiceTest {
     void registerTest() throws NoSuchAlgorithmException {
 
         // Given
-        RegisterRequest registerRequest = new RegisterRequest("abcd@mail.com", "tempuser", "010-0000-0000", "CUSTOMER", "passwordTest");
+        var registerRequest = new RegisterRequest("abcd@mail.com", "tempuser", "010-0000-0000", "CUSTOMER", "passwordTest");
 
         // When
-        UserEntity userEntity = sut.registerUser(registerRequest);
+        Users userEntity = sut.registerUser(registerRequest);
 
         // Then
         then(userEntity).isNotNull();

@@ -4,9 +4,9 @@ import com.ecommerce.member.dto.requset.LoginRequest;
 import com.ecommerce.member.dto.requset.ModifyUserRequest;
 import com.ecommerce.member.dto.requset.RegisterRequest;
 import com.ecommerce.member.dto.response.LoginResponse;
-import com.ecommerce.member.memberEntity.UserEntity;
+import com.ecommerce.member.memberEntity.Users;
 import com.ecommerce.member.memberService.UserService;
-import com.ecommerce.util.JwtUtil;
+import com.ecommerce.util.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -21,17 +21,17 @@ import java.security.NoSuchAlgorithmException;
 @RequiredArgsConstructor
 public class MemberController {
 
-    private final JwtUtil jwtUtil;
+    private final JwtService jwtService;
     private final UserService userService;
 
     @PostMapping("/member/users/registration")
-    public UserEntity register(@RequestBody RegisterRequest registerRequest) throws NoSuchAlgorithmException {
+    public Users register(@RequestBody RegisterRequest registerRequest) throws NoSuchAlgorithmException {
         return userService.registerUser(registerRequest);
     }
 
     @PostMapping("/member/users/modify")
-    public UserEntity modifyUser(@RequestBody ModifyUserRequest dto, @RequestHeader("Authorization") String token) {
-        String email = jwtUtil.extractEmail(token);
+    public Users modifyUser(@RequestBody ModifyUserRequest dto, @RequestHeader("Authorization") String token) {
+        String email = jwtService.generateToken(token);
         return userService.modifyUser(email, dto);
     }
 

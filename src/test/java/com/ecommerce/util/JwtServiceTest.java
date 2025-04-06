@@ -3,8 +3,6 @@ package com.ecommerce.util;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -12,13 +10,13 @@ import static org.assertj.core.api.BDDAssertions.then;
 
 @Slf4j
 @SpringBootTest
-class JwtUtilTest {
+class JwtServiceTest {
 
-    @Autowired private JwtUtil jwtUtil;
+    @Autowired private JwtService jwtService;
 
     @Test
     void isBeanNotNull() {
-        then(jwtUtil).isNotNull();
+        then(jwtService).isNotNull();
     }
 
 
@@ -27,10 +25,10 @@ class JwtUtilTest {
     void generateTokenTest() {
 
         // Given
-        String email = "abcd@mail.com";
+        String userId = "e7a96106-c4bb-457e-9e86-c859e93b21a9";
 
         // When
-        String token = jwtUtil.generateToken(email);
+        String token = jwtService.generateToken(userId);
 
         // Then
         then(token).isNotNull();
@@ -39,16 +37,17 @@ class JwtUtilTest {
     }
 
     @Test
-    void extractEmail() {
+    void extractUserId() {
+
         // Given
-        String email = "abcd@mail.com";
+        String userId = "e7a96106-c4bb-457e-9e86-c859e93b21a9";
 
         // When
-        String token = jwtUtil.generateToken(email);
-        String extractEmail = jwtUtil.extractEmail(token);
+        String token = jwtService.generateToken(userId);
+        String extractEmail = jwtService.extractUserId(token);
 
         // Then
         then(extractEmail).isNotNull();
-        log.info("extractEmail >> {}", extractEmail);
+        log.info("extractUserId >> {}", extractEmail);
     }
 }

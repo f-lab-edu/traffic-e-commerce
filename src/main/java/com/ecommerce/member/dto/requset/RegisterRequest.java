@@ -1,5 +1,11 @@
 package com.ecommerce.member.dto.requset;
 
+import io.micrometer.common.util.StringUtils;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
+@AllArgsConstructor
 public class RegisterRequest {
 
     public String email;
@@ -13,14 +19,7 @@ public class RegisterRequest {
     public String password;
 
     public boolean hasNotPassword() {
-        return password == null || password.isBlank();
+        return StringUtils.isBlank(password) || StringUtils.isEmpty(password);
     }
 
-    public RegisterRequest(String email, String userName, String phoneNumber, String role, String password) {
-        this.email = email;
-        this.userName = userName;
-        this.phoneNumber = phoneNumber;
-        this.role = role;
-        this.password = password;
-    }
 }

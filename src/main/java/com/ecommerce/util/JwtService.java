@@ -10,7 +10,7 @@ import java.util.Date;
 
 @Component
 @RequiredArgsConstructor
-public class JwtUtil {
+public class JwtService {
 
     private final JwtKeyProvider keyProvider;
 
@@ -25,7 +25,7 @@ public class JwtUtil {
 
     }
 
-    public String extractEmail(String token) {
+    public String extractUserId(String token) {
         Jws<Claims> claimsJws = Jwts.parser().verifyWith(keyProvider.getKey()).build().parseSignedClaims(token);
         return replacePrefix(claimsJws.getPayload().getSubject());
     }

@@ -3,9 +3,6 @@ package com.ecommerce.util;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-
-import java.util.Map;
 
 public interface JsonUtilsDeco {
     Gson prettyGson = new GsonBuilder()
@@ -23,9 +20,4 @@ public interface JsonUtilsDeco {
             .serializeNulls()
             .create();
 
-    static String convertMapToJsonString(Map<String, String> payload) {
-        JsonObject obj = new JsonObject();
-        payload.forEach(obj::addProperty);
-        return prettyGson.toJson(obj);
-    }
 }
