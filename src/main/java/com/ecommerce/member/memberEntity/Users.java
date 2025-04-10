@@ -9,6 +9,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "users")
 @Builder
@@ -18,7 +20,7 @@ public class Users {
 
     @Id
     @Column(name = "user_id", nullable = false)
-    public String userId;
+    public UUID userId;
 
     @Column(unique = true)
     public String email;
@@ -35,7 +37,7 @@ public class Users {
 
     public String role;
 
-    public static Users of(String userId, String email, String password, String salt, String userName, String phoneNumber, String role) {
+    public static Users of(UUID userId, String email, String password, String salt, String userName, String phoneNumber, String role) {
         return Users.builder()
                 .userId(userId).email(email).password(password).salt(salt).userName(userName).phoneNumber(phoneNumber).role(role)
                 .build();

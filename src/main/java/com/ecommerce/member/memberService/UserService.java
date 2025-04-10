@@ -28,7 +28,7 @@ public class UserService {
 
         String salt = PasswordUtil.generateSalt();
         String hashWithSalt = PasswordUtil.hashWithSalt(registerRequest.password, salt);
-        String userId = UUID.randomUUID().toString();
+        UUID userId = UUID.randomUUID();
 
         var user = Users.of(userId, registerRequest.email, hashWithSalt, salt, registerRequest.userName, registerRequest.phoneNumber, registerRequest.role);
 
@@ -48,7 +48,7 @@ public class UserService {
 
     public LoginResponse responseToken(LoginRequest loginRequest) throws NoSuchAlgorithmException {
         Users loginUser = checkValidPasswd(loginRequest);
-        String token = jwtService.generateToken(loginUser.userId);
+        String token = jwtService.generateToken(loginUser.userId.toString());
 
         return new LoginResponse(token);
     }
