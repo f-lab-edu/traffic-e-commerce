@@ -22,13 +22,13 @@ public class ProductResponse {
     private List<String> imageUrls;
 
     public static ProductResponse from(Product product) {
-        return new ProductResponse(
-                product.getId()
-                , product.getName()
-                , product.getPrice()
-                , product.getDescription()
-                , product.getImageList().stream().map(ProductImage::getImageUrl).collect(Collectors.toList())
-        );
+        return ProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .price(product.getPrice())
+                .description(product.getDescription())
+                .imageUrls(product.getImageList().stream().map(ProductImage::getImageUrl).collect(Collectors.toList()))
+                .build();
     }
 
 }

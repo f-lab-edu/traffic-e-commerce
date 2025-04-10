@@ -8,13 +8,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "products")
 @Getter
 @Setter
 @NoArgsConstructor
-@RequiredArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Product {
@@ -23,8 +23,11 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Column(name = "product_uuid", columnDefinition = "BINARY(16)", unique = true, nullable = false)
+    private UUID productUUID;
+
     @Column(name = "seller_id", nullable = false)
-    private Long sellerId;
+    private UUID sellerId;
 
     @Column(nullable = false)
     private String name;
@@ -35,11 +38,6 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Builder.Default
-    private ProductStatus status = ProductStatus.ACTIVE;
-
     private String description;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -47,8 +45,13 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
-    private ProductCategory categoryId;
+    private ProductCategory category;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
 
     @Column(name = "crea_dt")
     private LocalDateTime creaDt;
@@ -56,18 +59,17 @@ public class Product {
     @Column(name = "updt_dt")
     private LocalDateTime updtDt;
 
-    public static Product of(Long sellerId, ProductRegisterRequest dto, ProductCategory category) {
+    public static Product of(UUID sellerId, ProductRegisterRequest dto, ProductCategory category) {
         return Product.builder()
                 .sellerId(sellerId)
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .price(dto.getPrice())
                 .stockQuantity(dto.getStockQuantity())
-                .categoryId(category)
-                .status(ProductStatus.ACTIVE)
+                .category(category)
+                .isActive(true)
+                .isDeleted(false)
                 .build();
-
-
     }
 
     public static Product of(Product savedProduct, List<ProductImage> imageList) {
@@ -77,7 +79,8 @@ public class Product {
                 .description(savedProduct.getDescription())
                 .price(savedProduct.getPrice())
                 .stockQuantity(savedProduct.getStockQuantity())
-                .status(savedProduct.getStatus())
+                .isActive(savedProduct.isActive)
+                .isDeleted(savedProduct.isDeleted)
                 .imageList(imageList)
                 .build();
     }
@@ -86,11 +89,17 @@ public class Product {
     protected void onCreate() {
         this.creaDt = LocalDateTime.now();
         this.updtDt = LocalDateTime.now();
+        this.productUUID = UUID.randomUUID();
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updtDt = LocalDateTime.now();
+    }
+
+    public void softDelete() {
+        this.isActive = false;
+        this.isDeleted = true;
     }
 
 }

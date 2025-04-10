@@ -1,5 +1,6 @@
 package com.ecommerce.product.dto.search;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Builder
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class DetailedSearchCondition {
 
     private String name;

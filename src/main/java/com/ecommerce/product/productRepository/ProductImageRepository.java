@@ -8,7 +8,8 @@ import java.util.List;
 
 public interface ProductImageRepository extends JpaRepository<ProductImage, Long> {
 
+
     void deleteByProduct(Product product);
 
-    void saveAll(List<ProductImage> images );
+//    void saveAll(List<ProductImage> productImage );
 }

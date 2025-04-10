@@ -7,6 +7,7 @@ import com.ecommerce.product.dto.response.ProductResponse;
 import com.ecommerce.product.dto.search.DetailedSearchCondition;
 import com.ecommerce.product.productEntity.Product;
 import com.ecommerce.product.productService.ProductService;
+import com.ecommerce.util.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,12 +19,14 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/product")
 public class productController {
 
+    private final JwtService jwtService;
     private final ProductService productService;
 
 
@@ -35,9 +38,8 @@ public class productController {
     @GetMapping("/seller/getProducts")
     public ResponseEntity<List<ProductResponse>> getSellerProducts(@RequestHeader("Authorization") String auth) {
         String token = auth.replace("Bearer ", "");
-        String email = "";
-        Long sellerId = Long.valueOf("");
-        List<ProductResponse> products = productService.getSellerProducts(sellerId);
+        String sellerId = jwtService.extractUserId(token);
+        List<ProductResponse> products = productService.getSellerProducts(UUID.fromString(sellerId));
         return ResponseEntity.ok(products);
     }
 
@@ -47,12 +49,11 @@ public class productController {
      * @params
      * auth : jwt 토큰
      **/
-    @GetMapping("/seller/getProducts")
-    public ResponseEntity<List<ProductResponse>> getSellerProductsByStatus(@RequestHeader("Authorization") String auth, String status) {
+    @GetMapping("/seller/getProductsByStatus")
+    public ResponseEntity<List<ProductResponse>> getSellerProductsByStatus(@RequestHeader("Authorization") String auth, boolean isActive) {
         String token = auth.replace("Bearer ", "");
-        String email = "";
-        Long sellerId = Long.valueOf("");
-        List<ProductResponse> products = productService.getSellerProducts(sellerId, status);
+        String sellerId = jwtService.extractUserId(token);
+        List<ProductResponse> products = productService.getSellerProducts(UUID.fromString(sellerId), isActive);
         return ResponseEntity.ok(products);
     }
 
@@ -66,7 +67,7 @@ public class productController {
     @PostMapping("/register")
     public ResponseEntity<?> registerProduct(@RequestHeader("Authorization") String auth, @RequestBody @Validated ProductRegisterRequest request) {
         String token = auth.replace("Bearer ", "");
-        Long sellerId = Long.valueOf("");
+        String sellerId = jwtService.extractUserId(token);
         Product product = productService.registerProduct(sellerId, request);
         return ResponseEntity.ok(product);
     }
@@ -76,13 +77,13 @@ public class productController {
      * 판매자: 상품 정보 변경
      * @params
      * auth : jwt 토큰
+     * productId : 상품Id
      * request : 상품 변경 사항
      **/
     @PostMapping("/modify/{productId}")
-    public Product modifyProduct(@RequestHeader("Authorization") String auth, @Validated ProductModifyRequest request) throws AccessDeniedException {
+    public Product modifyProduct(@RequestHeader("Authorization") String auth, @PathVariable String productId,  @Validated ProductModifyRequest request) throws AccessDeniedException {
         String token = auth.replace("Bearer ", "");
-        Long sellerId = Long.valueOf("");
-        Long productId = Long.valueOf("");
+        String sellerId = jwtService.extractUserId(token);
         return productService.modifyProduct(sellerId, productId, request);
     }
 
@@ -94,10 +95,10 @@ public class productController {
      * request : 상품 삭제 대상
      **/
     @DeleteMapping("/delete/{productId}")
-    public void deleteProduct(@RequestHeader("Authorization") String auth, @Validated ProductDeleteRequest request) throws AccessDeniedException {
+    public void deleteProduct(@RequestHeader("Authorization") String auth, @PathVariable String productId, @Validated ProductDeleteRequest request) throws AccessDeniedException {
         String token = auth.replace("Bearer ", "");
-        Long sellerId = Long.valueOf("");
-        productService.deleteProduct(sellerId, request.getProductId());
+        String sellerId = jwtService.extractUserId(token);
+        productService.deleteProduct(sellerId, productId);
     }
 
 
@@ -108,7 +109,7 @@ public class productController {
      * productId : 상품 id
      **/
     @GetMapping("/detail/{productId}")
-    public ResponseEntity<ProductResponse> getProductDetail(@PathVariable Long productId) {
+    public ResponseEntity<ProductResponse> getProductDetail(@PathVariable String productId) {
         ProductResponse detailedProduct = productService.getProductDetail(productId);
         return ResponseEntity.ok(detailedProduct);
     }
@@ -134,7 +135,7 @@ public class productController {
 
         DetailedSearchCondition searchCondition = DetailedSearchCondition.of(name, categoryId, minPrice, maxPrice, pageable);
 
-        Page<ProductResponse> searchedProducts = productService.detailSearchProduct(searchCondition);
+        Page<ProductResponse> searchedProducts = productService.searchDetailForCustomer(searchCondition);
         return ResponseEntity.ok(searchedProducts);
     }
 

@@ -15,8 +15,10 @@ import java.time.LocalDateTime;
 public class ProductImage {
 
     @Id
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
+    // Product 테이블의 정수값 pk와 조인
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
@@ -27,10 +29,16 @@ public class ProductImage {
     @Column(name = "crea_dt", nullable = false)
     private LocalDateTime creaDt;
 
+    public static ProductImage of(Product savedProduct, String url) {
+        return ProductImage.builder()
+                .product(savedProduct)
+                .imageUrl(url)
+                .build();
+    }
+
     @PrePersist
     protected void onCreate() {
         this.creaDt = LocalDateTime.now();
     }
-
 
 }
