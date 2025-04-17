@@ -18,7 +18,8 @@ import static org.assertj.core.api.BDDAssertions.then;
 @SpringBootTest
 class UserServiceTest {
 
-    @Autowired private UserService sut;
+    @Autowired
+    private UserService sut;
 
 
     @Test
@@ -33,7 +34,22 @@ class UserServiceTest {
     void registerTest() throws NoSuchAlgorithmException {
 
         // Given
-        var registerRequest = new RegisterRequest("abcd@mail.com", "tempuser", "010-0000-0000", "CUSTOMER", "passwordTest");
+        var registerRequest = new RegisterRequest("abcd@mail.com", "tempCustomer", "010-0000-1234", "CUSTOMER", "passwordTest");
+
+        // When
+        Users userEntity = sut.registerUser(registerRequest);
+
+        // Then
+        then(userEntity).isNotNull();
+
+    }
+
+    @Test
+    @DisplayName("판매자 회원가입 테스트")
+    void registerSellerTest() throws NoSuchAlgorithmException {
+
+        // Given
+        var registerRequest = new RegisterRequest("wxyz@mail.com", "tempSeller", "010-0000-0000", "SELLER", "passwordSeller");
 
         // When
         Users userEntity = sut.registerUser(registerRequest);
