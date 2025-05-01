@@ -38,8 +38,9 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.mysql:mysql-connector-j'
     annotationProcessor 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'  // 테스트에서도 롬복 처리가 필요함
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.awaitility:awaitility4.2.0'
+    testImplementation 'org.awaitility:awaitility:4.2.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
