@@ -1,0 +1,19 @@
+//order_event.proto
+syntax = "proto3";
+package com.ecommerce.proto;
+
+message OrderCreatedEvent {
+  string orderUUID = 1;
+  string userId = 2;
+  string address = 3;
+  string contact = 4;
+  double totalPrice = 5;
+  repeated OrderItem items = 6;
+  string status = 7;
+}
+
+message OrderItem {
+  string productUUID = 1;
+  int32 quantity = 2;
+  double price = 3;
+}
