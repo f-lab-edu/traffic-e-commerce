@@ -5,7 +5,6 @@ import com.ecommerce.order.dto.orderResponse.OrderItemResponse;
 import com.ecommerce.order.dto.orderResponse.OrderResponse;
 import com.ecommerce.order.orderEntity.Order;
 import com.ecommerce.order.orderEntity.OrderItem;
-import com.ecommerce.order.orderRepository.OrderItemRepository;
 import com.ecommerce.order.orderRepository.OrderRepository;
 import com.ecommerce.proto.EdaMessage;
 import lombok.RequiredArgsConstructor;

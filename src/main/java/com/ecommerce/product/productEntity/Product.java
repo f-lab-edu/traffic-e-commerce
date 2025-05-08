@@ -40,6 +40,7 @@ public class Product {
 
     private String description;
 
+    @Builder.Default
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductImage> imageList = new ArrayList<>();
 
@@ -47,9 +48,11 @@ public class Product {
     @JoinColumn(name = "category_id")
     private ProductCategory category;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
+    @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
