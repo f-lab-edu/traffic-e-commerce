@@ -15,7 +15,7 @@ spring:
       use_sql_comments: true
   kafka:
     bootstrap-servers:
-      - localhost:9092
+      - localhost:9093
     consumer:
       group-id: integration-test-group
       auto-offset-reset: earliest

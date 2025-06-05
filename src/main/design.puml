@@ -1,0 +1,217 @@
+@startuml 이커머스 비동기 이벤트 기반 아키텍처 시퀀스 다이어그램 (개선)
+
+skinparam sequenceArrowThickness 2
+skinparam sequenceGroupBorderThickness 3
+skinparam noteBorderThickness 2
+skinparam noteBackgroundColor #f5f5f5
+
+actor "User" as User
+participant "OrderService" as OrderService
+participant "Kafka" as Kafka
+participant "PaymentService" as PaymentService
+participant "PaymentGateway" as PaymentGateway
+participant "ProductService" as ProductService
+participant "DeliveryService" as DeliveryService
+participant "NotificationService" as NotificationService
+participant "OrderQueryService" as OrderQueryService
+
+note over Kafka:  비동기 통신\n모든 서비스가 독립적으로 실행
+
+== 제품 조회 및 가용성 확인 (사전 체크) ==
+
+User -> ProductService: 제품 조회 요청
+activate ProductService
+ProductService --> User: 제품 정보 반환 (재고 포함)
+deactivate ProductService
+
+== 주문 생성 프로세스 ==
+
+User -> OrderService: 주문 요청 (제품 ID, 수량, 사용자 정보)
+activate OrderService
+
+OrderService -> ProductService: 재고 사전 확인 (동기 호출)
+activate ProductService
+ProductService --> OrderService: 재고 확인 결과
+deactivate ProductService
+
+alt 재고 부족
+    OrderService --> User: 재고 부족 응답
+else 재고 충분
+    OrderService -> OrderService: 주문 생성 및 저장\n(status: CREATED)
+    OrderService --> User: 응답: 주문 생성 완료\n(결제 요청 정보 포함)
+    OrderService -> Kafka: order.created 이벤트 발행
+    note right: 비동기 흐름 시작
+end
+deactivate OrderService
+
+== 재고 임시 할당 ==
+
+Kafka ->> ProductService: order.created 이벤트 수신
+activate ProductService
+ProductService -> ProductService: 재고 임시 할당\n(확정 전 상태)
+ProductService -> Kafka: inventory.allocated 이벤트 발행
+deactivate ProductService
+
+== 결제 프로세스 ==
+
+User -> PaymentService: 결제 요청 (주문ID, 결제 정보)
+activate PaymentService
+PaymentService -> PaymentService: 결제 처리 준비\n(status: PENDING)
+activate PaymentGateway
+PaymentService -> PaymentGateway: 결제 요청 (PG사 연동)
+note right: 타임아웃 설정 (30초)
+
+alt 결제 게이트웨이 타임아웃
+    PaymentService -> Kafka: payment.timeout 이벤트 발행
+    PaymentService --> User: 응답: 결제 시간 초과
+else 정상 처리
+    PaymentGateway --> PaymentService: 결제 결과 응답
+
+    alt 결제 성공
+        PaymentService -> PaymentService: 결제 정보 저장\n(status: COMPLETED)
+        PaymentService -> Kafka: payment.success 이벤트 발행
+        PaymentService --> User: 응답: 결제 성공
+    else 결제 실패
+        PaymentService -> PaymentService: 결제 정보 저장\n(status: FAILED)
+        PaymentService -> Kafka: payment.failed 이벤트 발행
+        PaymentService --> User: 응답: 결제 실패
+    end
+end
+
+deactivate PaymentGateway
+deactivate PaymentService
+
+== 주문 업데이트 및 재고 확정 ==
+
+Kafka ->> OrderService: payment.success 이벤트 수신
+activate OrderService
+OrderService -> OrderService: 주문 상태 업데이트\n(status: PAID)
+OrderService -> Kafka: order.paid 이벤트 발행
+deactivate OrderService
+
+Kafka ->> ProductService: payment.success 이벤트 수신
+activate ProductService
+ProductService -> ProductService: 임시 할당된 재고 확정
+ProductService -> Kafka: inventory.confirmed 이벤트 발행
+deactivate ProductService
+
+== 결제 실패 보상 트랜잭션 ==
+
+Kafka ->> OrderService: payment.failed 이벤트 수신
+activate OrderService
+OrderService -> OrderService: 주문 상태 업데이트\n(status: PAYMENT_FAILED)
+OrderService -> Kafka: order.payment_failed 이벤트 발행
+deactivate OrderService
+
+Kafka ->> ProductService: payment.failed 이벤트 수신
+activate ProductService
+ProductService -> ProductService: 임시 할당된 재고 원복
+ProductService -> Kafka: inventory.released 이벤트 발행
+deactivate ProductService
+
+== 배송 처리 흐름 ==
+
+Kafka ->> DeliveryService: inventory.confirmed 이벤트 수신
+activate DeliveryService
+DeliveryService -> DeliveryService: 배송 정보 생성\n(status: PREPARING)
+DeliveryService -> Kafka: delivery.preparing 이벤트 발행
+
+group 외부 배송 서비스 연동
+    DeliveryService -> DeliveryService: 외부 택배사에 배송 요청
+    DeliveryService -> DeliveryService: 운송장 번호 할당
+    DeliveryService -> Kafka: delivery.shipped 이벤트 발행
+end
+deactivate DeliveryService
+
+Kafka ->> OrderService: delivery.shipped 이벤트 수신
+activate OrderService
+OrderService -> OrderService: 주문 상태 업데이트\n(status: SHIPPED)
+OrderService -> Kafka: order.shipped 이벤트 발행
+deactivate OrderService
+
+Kafka ->> NotificationService: order.shipped 이벤트 수신
+activate NotificationService
+NotificationService -> User: 배송 시작 알림
+deactivate NotificationService
+
+== 주문 상태 조회 (CQRS 패턴) ==
+
+User -> OrderQueryService: 주문 상태 조회 요청
+activate OrderQueryService
+OrderQueryService --> User: 현재 주문 상태 응답
+deactivate OrderQueryService
+
+note over OrderQueryService: 모든 이벤트를 구독하여\n읽기 전용 모델 유지
+
+== 배송 완료 ==
+
+DeliveryService -> Kafka: delivery.completed 이벤트 발행
+
+Kafka ->> OrderService: delivery.completed 이벤트 수신
+activate OrderService
+OrderService -> OrderService: 주문 상태 업데이트\n(status: DELIVERED)
+OrderService -> Kafka: order.completed 이벤트 발행
+deactivate OrderService
+
+Kafka ->> NotificationService: order.completed 이벤트 수신
+activate NotificationService
+NotificationService -> User: 배송 완료 알림
+deactivate NotificationService
+
+== 주문 취소 (사용자 요청) ==
+
+User -> OrderService: 주문 취소 요청
+activate OrderService
+
+OrderService -> OrderService: 주문 상태 및 취소 가능 여부 조회
+
+alt 취소 불가 (이미 배송 시작)
+    OrderService --> User: 취소 불가 응답
+else 취소 가능
+    OrderService -> OrderService: 주문 상태 변경\n(status: CANCELLATION_REQUESTED)
+    OrderService -> Kafka: order.cancellation_requested 이벤트 발행
+    OrderService --> User: 주문 취소 요청 접수 응답
+end
+deactivate OrderService
+
+Kafka ->> PaymentService: order.cancellation_requested 이벤트 수신
+activate PaymentService
+
+alt 결제 취소 가능
+    PaymentService -> PaymentGateway: 결제 취소 요청
+    PaymentGateway --> PaymentService: 결제 취소 응답
+    PaymentService -> PaymentService: 결제 취소 처리
+    PaymentService -> Kafka: payment.cancelled 이벤트 발행
+else 결제 취소 불가
+    PaymentService -> Kafka: payment.cancel_failed 이벤트 발행
+end
+deactivate PaymentService
+
+Kafka ->> OrderService: payment.cancelled 이벤트 수신
+activate OrderService
+OrderService -> OrderService: 주문 상태 변경\n(status: CANCELLED)
+OrderService -> Kafka: order.cancelled 이벤트 발행
+deactivate OrderService
+
+Kafka ->> ProductService: order.cancelled 이벤트 수신
+activate ProductService
+ProductService -> ProductService: 재고 원복
+ProductService -> Kafka: inventory.restored 이벤트 발행
+deactivate ProductService
+
+Kafka ->> NotificationService: order.cancelled 이벤트 수신
+activate NotificationService
+NotificationService -> User: 주문 취소 확정 알림
+deactivate NotificationService
+
+== 시스템 장애 대응 (서킷 브레이커 패턴) ==
+
+note over User, NotificationService #ffcccc: 시스템 장애 감지 및 대응
+note over User, NotificationService: 각 서비스는 자체 상태 이벤트를 발행\n(service.healthy, service.degraded, service.down)
+note over User, NotificationService: 타임아웃 이벤트와 실패 임계값 초과 시\n서킷 브레이커 작동
+
+== 이벤트 소싱 및 이벤트 저장소 ==
+
+note over User, NotificationService #99ff99: 모든 이벤트는 영구 저장되며\n시스템 재구성 및 감사에 활용 가능
+
+@enduml
