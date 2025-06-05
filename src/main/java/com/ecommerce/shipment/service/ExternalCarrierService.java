@@ -1,7 +1,7 @@
-package com.ecommerce.delivery.service;
+package com.ecommerce.shipment.service;
 
-import com.ecommerce.delivery.domain.Delivery;
-import com.ecommerce.delivery.domain.DeliveryStatus;
+import com.ecommerce.shipment.domain.Shipment;
+import com.ecommerce.shipment.domain.ExternalShippingStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class ExternalCarrierService {
 
-    private final DeliveryService deliveryService;
+    private final ShipmentService shipmentService;
     private final Random random = new Random();
 
     private static final String[] CARRIER_NAMES = {
@@ -25,11 +25,11 @@ public class ExternalCarrierService {
     };
 
     @Async
-    public CompletableFuture<Void> requestDelivery(Delivery delivery) {
+    public CompletableFuture<Void> requestDelivery(Shipment shipment) {
         return CompletableFuture.runAsync(() -> {
             try {
-                log.info("Requesting delivery to external carrier for delivery: {}",
-                        delivery.getDeliveryUUID());
+                log.info("Requesting delivery to external carrier for Shipment : {}",
+                        shipment.getShipUUID());
 
                 // 택배사 정보 생성 (랜덤)
                 String carrierName = CARRIER_NAMES[random.nextInt(CARRIER_NAMES.length)];
@@ -38,19 +38,21 @@ public class ExternalCarrierService {
                 // 배송 접수 처리 시간 시뮬레이션 (1-3초)
                 TimeUnit.SECONDS.sleep(1 + random.nextInt(3));
 
-                // 배송 접수 완료 후 상태 업데이트
-                deliveryService.updateDeliveryStatus(
-                        delivery.getDeliveryUUID(),
-                        DeliveryStatus.SHIPPING,
-                        carrierName,
-                        trackingNumber
-                );
 
-                log.info("Delivery registered with carrier: {}, tracking: {}",
-                        carrierName, trackingNumber);
+                ExternalShippingStatus status = ExternalShippingStatus.SHIPPING;
+
+                // 배송 접수 완료 후 상태 업데이트
+//                shipmentService.updateShipmentStatus(
+//                        shipment.getShipUUID(),
+//                        ExternalShippingStatus.SHIPPING,
+//                        carrierName,
+//                        trackingNumber
+//                );
+
+                log.info("Delivery registered with carrier: {}, tracking: {}", carrierName, trackingNumber);
 
                 // 배송 상태 변경 시뮬레이션 시작
-                simulateDeliveryProcess(delivery.getDeliveryUUID());
+                simulateDeliveryProcess(shipment.getShipUUID());
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -61,35 +63,35 @@ public class ExternalCarrierService {
         });
     }
 
-    private void simulateDeliveryProcess(UUID deliveryUUID) {
+    private void simulateDeliveryProcess(UUID shipUUID) {
         CompletableFuture.runAsync(() -> {
             try {
 
 
                 // 배송출발 단계
                 TimeUnit.SECONDS.sleep(5 + random.nextInt(10));
-                deliveryService.updateDeliveryStatus(
-                        deliveryUUID,
-                        DeliveryStatus.SHIPPING,
-                        null, null
-                );
+//                shipmentService.updateShipmentStatus(
+//                        shipUUID,
+//                        ExternalShippingStatus.SHIPPING,
+//                        null, null
+//                );
 
                 // 최종 배송 완료/실패 (90% 성공률)
                 TimeUnit.SECONDS.sleep(5 + random.nextInt(10));
                 if (random.nextInt(10) < 9) {
-                    deliveryService.updateDeliveryStatus(
-                            deliveryUUID,
-                            DeliveryStatus.DELIVERED,
-                            null, null
-                    );
-                    log.info("Delivery completed successfully: {}", deliveryUUID);
+//                    shipmentService.updateShipmentStatus(
+//                            shipUUID,
+//                            ExternalShippingStatus.DELIVERED,
+//                            null, null
+//                    );
+                    log.info("Delivery completed successfully: {}", shipUUID);
                 } else {
-                    deliveryService.updateDeliveryStatus(
-                            deliveryUUID,
-                            DeliveryStatus.FAILED,
-                            null, null
-                    );
-                    log.info("Delivery failed: {}", deliveryUUID);
+//                    shipmentService.updateShipmentStatus(
+//                            shipUUID,
+//                            ExternalShippingStatus.FAILED,
+//                            null, null
+//                    );
+                    log.info("Delivery failed: {}", shipUUID);
                 }
 
             } catch (InterruptedException e) {

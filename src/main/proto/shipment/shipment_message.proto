@@ -1,0 +1,67 @@
+//shipment.proto
+syntax = "proto3";
+package com.ecommerce.proto;
+
+option java_multiple_files = true;
+option java_package = "com.ecommerce.proto";
+option java_outer_classname = "ShipmentMessage";
+
+
+message Timestamp {
+  int64 seconds = 1;  // Unix timestamp in seconds
+  int32 nanos = 2;    // Nanoseconds (0-999,999,999)
+}
+
+
+// 외부 배송 상태 열거형
+enum ExternalShippingStatus {
+  EXTERNAL_SHIPPING_STATUS_UNSPECIFIED = 0;
+  READY = 1;
+  READY_FOR_PICKUP = 2;
+  SHIPPING = 3;
+  DELIVERED = 4;
+  FAILED = 5;
+  CANCELLED = 6;
+}
+// 배송 생성 이벤트
+message ShipmentCreatedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  ExternalShippingStatus status = 3;
+  Timestamp estmt_deliver_dt = 4;
+}
+
+// 배송 실패 이벤트
+message ShipmentFailedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  Timestamp failed_dt = 3;
+}
+
+// 배송 완료 이벤트
+message ShipmentCompletedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  string tracking_number = 3;
+  Timestamp completed_dt = 4;
+}
+
+// 배송 상태 변경 이벤트
+message ShipmentStatusChangedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  ExternalShippingStatus status = 3;
+  string carrier_name = 4;
+  string tracking_number = 5;
+  Timestamp changed_at = 6;
+}
+
+// 모든 배송 이벤트를 포함하는 통합 메시지 (선택사항)
+message ShipmentEvent {
+  oneof event {
+    ShipmentCompletedEvent shipment_completed = 1;
+    ShipmentCreatedEvent shipment_created = 2;
+    ShipmentFailedEvent shipment_failed = 3;
+    ShipmentStatusChangedEvent shipment_status_changed = 4;
+  }
+}
