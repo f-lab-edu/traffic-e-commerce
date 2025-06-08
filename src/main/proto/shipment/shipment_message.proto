@@ -1,0 +1,40 @@
+//shipment.proto
+syntax = "proto3";
+package com.ecommerce.proto;
+
+option java_multiple_files = true;
+option java_package = "com.ecommerce.proto";
+option java_outer_classname = "ShipmentMessage";
+
+// 배송 생성 이벤트
+message ShipmentCreatedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  string status = 3;
+  int64 estmt_deliver_dt = 4;
+}
+
+// 배송 실패 이벤트
+message ShipmentFailedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  int64 failed_dt = 3;
+}
+
+// 배송 완료 이벤트
+message ShipmentCompletedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  string tracking_number = 3;
+  int64 completed_dt = 4;
+}
+
+// 배송 상태 변경 이벤트
+message ShipmentStatusChangedEvent {
+  string order_uuid = 1;
+  string ship_uuid = 2;
+  string status = 3;
+  string carrier_name = 4;
+  string tracking_number = 5;
+  int64 changed_at = 6;
+}
