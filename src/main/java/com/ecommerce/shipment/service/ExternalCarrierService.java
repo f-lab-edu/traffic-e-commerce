@@ -2,6 +2,7 @@ package com.ecommerce.shipment.service;
 
 import com.ecommerce.shipment.domain.Shipment;
 import com.ecommerce.shipment.domain.ExternalShippingStatus;
+import com.ecommerce.shipment.dto.request.CarrierUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -25,11 +26,10 @@ public class ExternalCarrierService {
     };
 
     @Async
-    public CompletableFuture<Void> requestDelivery(Shipment shipment) {
-        return CompletableFuture.runAsync(() -> {
+    public void requestDelivery(Shipment shipment) {
+        CompletableFuture.runAsync(() -> {
             try {
-                log.info("Requesting delivery to external carrier for Shipment : {}",
-                        shipment.getShipUUID());
+                log.info("Requesting delivery to external carrier for Shipment : {}", shipment.getShipUUID());
 
                 // 택배사 정보 생성 (랜덤)
                 String carrierName = CARRIER_NAMES[random.nextInt(CARRIER_NAMES.length)];
@@ -38,16 +38,18 @@ public class ExternalCarrierService {
                 // 배송 접수 처리 시간 시뮬레이션 (1-3초)
                 TimeUnit.SECONDS.sleep(1 + random.nextInt(3));
 
+                CarrierUpdateRequest readyRequest = CarrierUpdateRequest.of(
+                        carrierName,
+                        trackingNumber,
+                        ExternalShippingStatus.READY_FOR_PICKUP
+                );
 
-                ExternalShippingStatus status = ExternalShippingStatus.SHIPPING;
 
-                // 배송 접수 완료 후 상태 업데이트
-//                shipmentService.updateShipmentStatus(
-//                        shipment.getShipUUID(),
-//                        ExternalShippingStatus.SHIPPING,
-//                        carrierName,
-//                        trackingNumber
-//                );
+                // 한 번의 트랜잭션으로 택배사 정보 + 상태 변경
+                shipmentService.updateCarrierInfoAndStatus(
+                        shipment.getShipUUID(),
+                        readyRequest
+                );
 
                 log.info("Delivery registered with carrier: {}, tracking: {}", carrierName, trackingNumber);
 
@@ -66,31 +68,17 @@ public class ExternalCarrierService {
     private void simulateDeliveryProcess(UUID shipUUID) {
         CompletableFuture.runAsync(() -> {
             try {
-
-
                 // 배송출발 단계
                 TimeUnit.SECONDS.sleep(5 + random.nextInt(10));
-//                shipmentService.updateShipmentStatus(
-//                        shipUUID,
-//                        ExternalShippingStatus.SHIPPING,
-//                        null, null
-//                );
+                shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.SHIPPING);
 
                 // 최종 배송 완료/실패 (90% 성공률)
                 TimeUnit.SECONDS.sleep(5 + random.nextInt(10));
                 if (random.nextInt(10) < 9) {
-//                    shipmentService.updateShipmentStatus(
-//                            shipUUID,
-//                            ExternalShippingStatus.DELIVERED,
-//                            null, null
-//                    );
+                    shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.DELIVERED);
                     log.info("Delivery completed successfully: {}", shipUUID);
                 } else {
-//                    shipmentService.updateShipmentStatus(
-//                            shipUUID,
-//                            ExternalShippingStatus.FAILED,
-//                            null, null
-//                    );
+                    shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.FAILED);
                     log.info("Delivery failed: {}", shipUUID);
                 }
 

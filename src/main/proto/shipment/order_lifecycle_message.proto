@@ -1,0 +1,23 @@
+// shipment-service/src/main/proto/succeed_order_message.proto
+syntax = "proto3";
+
+package com.ecommerce.shipment.domain;
+
+message OrderLifecycleEvent {
+  string order_uuid = 1;
+  OrderAction action = 2;
+
+  // 최소한의 정보
+  message ShippingDetails {
+    string delivery_address = 1;
+    string contact_phone = 2;
+    repeated string product_ids = 3;
+  }
+
+  ShippingDetails shipping_details = 3;
+}
+
+enum OrderAction {
+  ORDER_CONFIRMED = 0;
+  ORDER_CANCELLED = 1;
+}

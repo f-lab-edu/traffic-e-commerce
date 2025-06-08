@@ -1,5 +1,6 @@
 package com.ecommerce.shipment.domain;
 
+import com.ecommerce.shipment.event.producer.ShipmentEventPublisher;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -57,54 +58,32 @@ public class Shipment {
         updtDt = LocalDateTime.now();
     }
 
-    // 택배사 정보 업데이트
+    // 택배사 정보 업데이트 - JPA Dirty Checking 활용
     public void updateCarrierDetailInfo(String carrierName, String trackingNumber) {
-        Shipment.builder()
-                .id(id)
-                .orderUUID(orderUUID)
-                .shipUUID(shipUUID)
-                .carrierName(carrierName)
-                .trackingNumber(trackingNumber)
-                .status(status)
-                .estmtDeliverDt(estmtDeliverDt)
-                .creaDt(creaDt)
-                .build();
+        this.carrierName = carrierName;
+        this.trackingNumber = trackingNumber;
+        // @PreUpdate에 의해 updtDt 자동 갱신
     }
 
-    // 상태 업데이트 메서드 (불변성 유지)
-    public Shipment updateShippingStatus(ExternalShippingStatus newStatus) {
-        return Shipment.builder()
-                .id(id)
-                .orderUUID(orderUUID)
-                .shipUUID(shipUUID)
-                .carrierName(carrierName)
-                .trackingNumber(trackingNumber)
-                .status(newStatus)
-                .estmtDeliverDt(estmtDeliverDt)
-                .creaDt(creaDt)
-                .build();
+    // 상태 업데이트 메서드 - JPA Dirty Checking 활용
+    public void updateShippingStatus(ExternalShippingStatus newStatus) {
+        // 1. 비즈니스 규칙 검증
+        if (!status.canTransitionTo(newStatus)) {
+            throw new IllegalStateException(String.format("Cannot transition from %s to %s", status, newStatus));
+        }
+
+        // 2. 상태 변경 (Dirty Checking 으로 자동 UPDATE)
+        this.status = newStatus;
+        // 3. @PreUpdate에 의해 updtDt 자동 갱신
     }
 
     public boolean hasStatusDelivered() {
         return status.equals(ExternalShippingStatus.DELIVERED);
     }
 
-    public boolean hasStatusFailed() {
-        return status.equals(ExternalShippingStatus.FAILED);
-    }
-
-
-    public boolean hasDeliveryDetailInfo() {
-        return hasCarrierName() && hasTrackingNumber();
-    }
-
-    public boolean hasCarrierName() {
-        return carrierName != null;
-    }
-
-
-    public boolean hasTrackingNumber() {
-        return trackingNumber != null;
+    // 비즈니스 로직 처리 (함수형 enum 활용)
+    public void processStatusChange(ShipmentEventPublisher publisher) {
+        status.process(this, publisher);
     }
 
 }

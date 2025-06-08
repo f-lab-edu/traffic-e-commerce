@@ -1,6 +1,7 @@
 package com.ecommerce.shipment.event.consumer;
 
-import com.ecommerce.proto.EdaMessage;
+import com.ecommerce.shipment.domain.OrderLifecycleMessage;
+import com.ecommerce.shipment.domain.Shipment;
 import com.ecommerce.shipment.service.ShipmentService;
 import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +10,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -18,7 +18,6 @@ import java.util.UUID;
 public class ShipmentEventConsumer {
 
     private final ShipmentService shipmentService;
-
 
     @KafkaListener(topics = "shipment-events", groupId = "shipment-service")
     public void consumeShipmentEvents(ConsumerRecord<String, byte[]> record) {
@@ -39,30 +38,32 @@ public class ShipmentEventConsumer {
 
     private void operateOrderSucceed(byte[] eventBytes) {
         try {
-            EdaMessage.OrderCreatedEvent event = EdaMessage.OrderCreatedEvent.parseFrom(eventBytes);
-            UUID orderUUID = UUID.fromString(event.getOrderUUID());
-            shipmentService.getShipListByOrderUUID(List.of(orderUUID));
-        } catch (InvalidProtocolBufferException e) {
-            log.error("[shipment-operate] : ProtoBuf parse error : {}", e.getMessage());
+            UUID orderUUID = parseOrderUUID(eventBytes);
+            Shipment succeedOrder = shipmentService.getShipmentByOrderUUID(orderUUID);
+            shipmentService.createExecuteShipment(succeedOrder);
         } catch (Exception e) {
             log.error("[shipment-operate] : created Order error : {}", e.getMessage());
         }
-
-
     }
 
     private void operateOrderCancelled(byte[] eventBytes) {
         try {
-            EdaMessage.OrderCreatedEvent event = EdaMessage.OrderCreatedEvent.parseFrom(eventBytes);
-            UUID orderUUID = UUID.fromString(event.getOrderUUID());
-//            shipmentService
-        } catch (InvalidProtocolBufferException e) {
-            log.error("ProtoBuf parse error : {}", e.getMessage());
+            UUID orderUUID = parseOrderUUID(eventBytes);
+            Shipment updatedShip = shipmentService.getShipmentByOrderUUID(orderUUID);
+            shipmentService.cancelShipment(updatedShip);
         } catch (Exception e) {
             log.error("Canceled Order  error : {}", e.getMessage());
         }
+    }
 
-
+    private UUID parseOrderUUID(byte[] eventBytes) {
+        try {
+            OrderLifecycleMessage.OrderLifecycleEvent orderEvent = OrderLifecycleMessage.OrderLifecycleEvent.parseFrom(eventBytes);
+            return UUID.fromString(orderEvent.getOrderUuid());
+        } catch (InvalidProtocolBufferException e) {
+            log.error("ProtoBuf parse error : {}", e.getMessage());
+            throw new RuntimeException("Failed to parse order UUID", e);
+        }
     }
 
 }
