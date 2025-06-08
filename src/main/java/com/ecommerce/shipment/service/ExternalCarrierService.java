@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -19,7 +20,8 @@ import java.util.concurrent.TimeUnit;
 public class ExternalCarrierService {
 
     private final ShipmentService shipmentService;
-    private final Random random = new Random();
+    @SuppressWarnings("java:S2245")
+    private final SecureRandom secureRandom = new SecureRandom();
 
     private static final String[] CARRIER_NAMES = {
             "Express Delivery", "Fast Shipping", "Quick Carrier", "Safe Transport"
@@ -32,11 +34,11 @@ public class ExternalCarrierService {
                 log.info("Requesting delivery to external carrier for Shipment : {}", shipment.getShipUUID());
 
                 // 택배사 정보 생성 (랜덤)
-                String carrierName = CARRIER_NAMES[random.nextInt(CARRIER_NAMES.length)];
+                String carrierName = CARRIER_NAMES[secureRandom.nextInt(CARRIER_NAMES.length)];
                 String trackingNumber = generateTrackingNumber();
 
                 // 배송 접수 처리 시간 시뮬레이션 (1-3초)
-                TimeUnit.SECONDS.sleep(1 + random.nextInt(3));
+                TimeUnit.SECONDS.sleep(1 + secureRandom.nextInt(3));
 
                 CarrierUpdateRequest readyRequest = CarrierUpdateRequest.of(
                         carrierName,
@@ -69,12 +71,12 @@ public class ExternalCarrierService {
         CompletableFuture.runAsync(() -> {
             try {
                 // 배송출발 단계
-                TimeUnit.SECONDS.sleep(5 + random.nextInt(10));
+                TimeUnit.SECONDS.sleep(5 + secureRandom.nextInt(10));
                 shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.SHIPPING);
 
                 // 최종 배송 완료/실패 (90% 성공률)
-                TimeUnit.SECONDS.sleep(5 + random.nextInt(10));
-                if (random.nextInt(10) < 9) {
+                TimeUnit.SECONDS.sleep(5 + secureRandom.nextInt(10));
+                if (secureRandom.nextInt(10) < 9) {
                     shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.DELIVERED);
                     log.info("Delivery completed successfully: {}", shipUUID);
                 } else {
@@ -97,12 +99,12 @@ public class ExternalCarrierService {
 
         // 2자리 대문자 알파벳
         for (int i = 0; i < 2; i++) {
-            sb.append((char) ('A' + random.nextInt(26)));
+            sb.append((char) ('A' + secureRandom.nextInt(26)));
         }
 
         // 10자리 숫자
         for (int i = 0; i < 10; i++) {
-            sb.append(random.nextInt(10));
+            sb.append(secureRandom.nextInt(10));
         }
 
         return sb.toString();
