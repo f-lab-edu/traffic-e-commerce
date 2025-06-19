@@ -27,7 +27,7 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     // 구매지 : 소비자 상품검색
     @Query("select p from Product p " +
             "where " +
-            "(:categoryId is null or p.categoryId.id = :categoryId) and " +
+            "(:categoryId is null or p.category.id = :categoryId) and " +
             "(:name IS NULL OR p.name LIKE %:name%) and " +
             "(:minPrice IS NULL OR p.price >= :minPrice) and " +
             "(:maxPrice IS NULL OR p.price <= :maxPrice) and " +
