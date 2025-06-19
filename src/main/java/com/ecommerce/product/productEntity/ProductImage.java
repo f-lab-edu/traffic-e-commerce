@@ -26,6 +26,14 @@ public class ProductImage {
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
+    @Builder.Default
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
+
     @Column(name = "crea_dt", nullable = false)
     private LocalDateTime creaDt;
 
@@ -41,4 +49,8 @@ public class ProductImage {
         this.creaDt = LocalDateTime.now();
     }
 
+    public void softDelete() {
+        this.isActive = false;
+        this.isDeleted = true;
+    }
 }

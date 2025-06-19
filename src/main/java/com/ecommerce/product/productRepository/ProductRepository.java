@@ -1,9 +1,11 @@
 package com.ecommerce.product.productRepository;
 
 import com.ecommerce.product.productEntity.Product;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,7 +26,7 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     List<Product> findBySellerIdAndIsActive(UUID sellerId, boolean isActive);
 
 
-    // 구매지 : 소비자 상품검색
+    // 구매자 : 소비자 상품검색
     @Query("select p from Product p " +
             "where " +
             "(:categoryId is null or p.category.id = :categoryId) and " +
@@ -39,7 +41,16 @@ public interface ProductRepository extends JpaRepository<Product, String> {
             @Param("maxPrice") BigDecimal maxPrice,
             Pageable pageable);
 
-    // 판매자: 상품 soft 삭제
-    Product save(Product product);
+    // 동시성
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Product p " +
+            "where p.productUUID =:productUUID")
+    Optional<Product> findByProductUUIDWithLock(@Param("productUUID") UUID productUUID);
+
+    // 데드락 방지를 위해 정렬
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Product p " +
+            "where p.productUUID in :productUUIDs order by p.productUUID")
+    List<Product> findByProductUUIDsWithLock(@Param("productUUIDs") List<UUID> productUUIDs);
 
 }
