@@ -84,7 +84,7 @@ public class ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("Cannot find products"));
 
         // 기존 이미지 소프트 딜리트 처리
-        List<ProductImage> images = imageRepository.findByProductNotDeleted(product);
+        List<ProductImage> images = imageRepository.findByProductAndIsDeletedFalse(product);
         images.forEach(ProductImage::softDelete);
 
         // 새 이미지들 저장
@@ -184,7 +184,7 @@ public class ProductService {
         }
     }
 
-    // 여러 상품 재고 차감
+    // 여러 상품 재고 차감(벌크+Dirty check)
     public void deductStocks(List<StockDeductRequest> requests, UUID orderUUID) {
         List<StockDeductResult> results = new ArrayList<>();
 
@@ -196,7 +196,7 @@ public class ProductService {
         Map<UUID, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getProductUUID, Function.identity()));
 
-        for(StockDeductRequest request : requests) {
+        for (StockDeductRequest request : requests) {
             Product product = productMap.get(request.getProductUUID());
 
             boolean deductSucceed = product.deductStock(request.getQuantity());
@@ -230,7 +230,7 @@ public class ProductService {
 
             eventPublisher.publishStockRestored(orderUUID, productUUID, quantity, product.getStockQuantity());
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.error("Fail to restore stock: productUUID={}, error={}", productUUID, e.getMessage());
             throw new RuntimeException("Fail to restore stock");
         }

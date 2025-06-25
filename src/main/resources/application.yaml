@@ -7,15 +7,15 @@ spring:
     username: root
     password: User#1234
   jpa:
-    generate-ddl: false
+    generate-ddl: true
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
       show_sql: true
       format_sql: true
       use_sql_comments: true
   kafka:
     bootstrap-servers:
-      - localhost:9093
+      - localhost:9092
     consumer:
       group-id: integration-test-group
       auto-offset-reset: earliest

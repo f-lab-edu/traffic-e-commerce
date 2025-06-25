@@ -27,7 +27,7 @@ public class KafkaConfig {
     private static final String ORDER_EVENTS_TOPIC = "order-events";
     private static final String PAYMENT_EVENTS_TOPIC = "payment-events";
     private static final String DELIVERY_EVENTS_TOPIC = "delivery-events";
-    @Value("${spring.kafka.bootstrap-server}")
+    @Value("${spring.kafka.bootstrap-servers[0]}")
     private String bootStrapServers;
     @Value("${spring.kafka.consumer.group-id:ecommerce-service}")
     private String defaultGroupId;
