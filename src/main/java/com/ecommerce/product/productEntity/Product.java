@@ -88,6 +88,49 @@ public class Product {
                 .build();
     }
 
+    // ===== 재고 관련 비즈니스 메서드 =====
+    /**
+     * 재고 충분성 확인
+     */
+    public boolean hasEnoughStock(int requestedQty) {
+        return this.stockQuantity >= requestedQty;
+    }
+
+    /**
+     * 재고 차감
+     */
+    public boolean deductStock(int quantity) {
+        if (!hasEnoughStock(quantity)) {
+            return false;
+        }
+        this.stockQuantity -= quantity;
+        this.updtDt = LocalDateTime.now();
+        return true;
+    }
+
+    /**
+     * 재고 복구
+     */
+    public void restoreStock(int quantity) {
+        this.stockQuantity += quantity;
+        this.updtDt = LocalDateTime.now();
+    }
+
+    /**
+     * 재고 소진 여부
+     */
+    public boolean isStockEmpty() {
+        return this.stockQuantity == 0;
+    }
+
+    /**
+     * 구매 가능 여부 (활성 상태 + 재고 있음)
+     */
+    public boolean isAvailableForPurchase() {
+        return this.isActive && !this.isDeleted && !isStockEmpty();
+    }
+
+
     @PrePersist
     protected void onCreate() {
         this.creaDt = LocalDateTime.now();
