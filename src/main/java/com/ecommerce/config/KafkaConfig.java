@@ -26,7 +26,7 @@ public class KafkaConfig {
     private static final String PRODUCT_EVENTS_TOPIC = "product-events";
     private static final String ORDER_EVENTS_TOPIC = "order-events";
     private static final String PAYMENT_EVENTS_TOPIC = "payment-events";
-    private static final String DELIVERY_EVENTS_TOPIC = "delivery-events";
+    private static final String SHIPMENT_EVENTS_TOPIC = "shipment-events";
     @Value("${spring.kafka.bootstrap-servers[0]}")
     private String bootStrapServers;
     @Value("${spring.kafka.consumer.group-id:ecommerce-service}")
@@ -79,8 +79,8 @@ public class KafkaConfig {
      * 배송 서비스용 컨슈머 팩토리
      */
     @Bean
-    public ConsumerFactory<String, byte[]> deliveryConsumerFactory() {
-        return createConsumerFactory(DELIVERY_EVENTS_TOPIC);
+    public ConsumerFactory<String, byte[]> shipmentConsumerFactory() {
+        return createConsumerFactory(SHIPMENT_EVENTS_TOPIC);
     }
 
 
@@ -114,8 +114,8 @@ public class KafkaConfig {
     }
 
     @Bean
-    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, byte[]>> deliveryKafkaListenerContainerFactory() {
-        return createListenerContainerFactory(deliveryConsumerFactory());
+    public KafkaListenerContainerFactory<ConcurrentMessageListenerContainer<String, byte[]>> shipmentKafkaListenerContainerFactory() {
+        return createListenerContainerFactory(shipmentConsumerFactory());
     }
 
     private ConcurrentKafkaListenerContainerFactory<String, byte[]> createListenerContainerFactory(

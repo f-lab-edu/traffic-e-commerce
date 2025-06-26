@@ -1,15 +1,17 @@
 package com.ecommerce.shipment.service;
 
-import com.ecommerce.shipment.domain.Shipment;
 import com.ecommerce.shipment.domain.ExternalShippingStatus;
+import com.ecommerce.shipment.domain.Shipment;
 import com.ecommerce.shipment.dto.request.CarrierUpdateRequest;
+import com.ecommerce.shipment.event.external.CarrierUpdateEvent;
+import com.ecommerce.shipment.event.external.ShipmentStatusUpdateEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -19,9 +21,13 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class ExternalCarrierService {
 
-    private final ShipmentService shipmentService;
     @SuppressWarnings("java:S2245")
     private final SecureRandom secureRandom = new SecureRandom();
+
+    private final ApplicationEventPublisher eventPublisher;
+
+    private static final int DELIVERY_SUCCESS_RATE = 9; // 90% 성공률
+    private static final int RANDOM_RANGE = 10;
 
     private static final String[] CARRIER_NAMES = {
             "Express Delivery", "Fast Shipping", "Quick Carrier", "Safe Transport"
@@ -46,18 +52,11 @@ public class ExternalCarrierService {
                         ExternalShippingStatus.READY_FOR_PICKUP
                 );
 
-
-                // 한 번의 트랜잭션으로 택배사 정보 + 상태 변경
-                shipmentService.updateCarrierInfoAndStatus(
-                        shipment.getShipUUID(),
-                        readyRequest
-                );
-
                 log.info("Delivery registered with carrier: {}, tracking: {}", carrierName, trackingNumber);
 
                 // 배송 상태 변경 시뮬레이션 시작
                 simulateDeliveryProcess(shipment.getShipUUID());
-
+                eventPublisher.publishEvent(CarrierUpdateEvent.of(shipment.getShipUUID(), readyRequest));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.error("Delivery request interrupted", e);
@@ -72,17 +71,12 @@ public class ExternalCarrierService {
             try {
                 // 배송출발 단계
                 TimeUnit.SECONDS.sleep(5 + secureRandom.nextInt(10));
-                shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.SHIPPING);
+                eventPublisher.publishEvent(ShipmentStatusUpdateEvent.of(shipUUID, ExternalShippingStatus.SHIPPING));
 
                 // 최종 배송 완료/실패 (90% 성공률)
-                TimeUnit.SECONDS.sleep(5 + secureRandom.nextInt(10));
-                if (secureRandom.nextInt(10) < 9) {
-                    shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.DELIVERED);
-                    log.info("Delivery completed successfully: {}", shipUUID);
-                } else {
-                    shipmentService.updateShipmentStatusByUUID(shipUUID, ExternalShippingStatus.FAILED);
-                    log.info("Delivery failed: {}", shipUUID);
-                }
+                ExternalShippingStatus finalStatus = decideShippingStatus();
+                eventPublisher.publishEvent(ShipmentStatusUpdateEvent.of(shipUUID, finalStatus));
+                log.info("Delivery completed : {} status : {}", shipUUID, finalStatus.toString());
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -109,4 +103,10 @@ public class ExternalCarrierService {
 
         return sb.toString();
     }
+
+    private ExternalShippingStatus decideShippingStatus() {
+        return secureRandom.nextInt(RANDOM_RANGE) < DELIVERY_SUCCESS_RATE ?
+                ExternalShippingStatus.DELIVERED : ExternalShippingStatus.FAILED;
+    }
+
 }

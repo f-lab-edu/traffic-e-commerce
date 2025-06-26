@@ -3,12 +3,15 @@ package com.ecommerce.shipment.service;
 import com.ecommerce.shipment.domain.ExternalShippingStatus;
 import com.ecommerce.shipment.domain.Shipment;
 import com.ecommerce.shipment.dto.request.CarrierUpdateRequest;
+import com.ecommerce.shipment.event.external.CarrierUpdateEvent;
+import com.ecommerce.shipment.event.external.ShipmentStatusUpdateEvent;
 import com.ecommerce.shipment.event.producer.ShipmentEventPublisher;
 import com.ecommerce.shipment.repository.ShipmentRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -60,10 +63,34 @@ public class ShipmentService {
         }
     }
 
+    // 택배사 정보 업데이트 이벤트 처리
+    @EventListener
+    @Transactional
+    public void updateCarrierInfo(CarrierUpdateEvent event) {
+        try {
+            log.info("Processing carrier update event : {}", event.getShipUUID());
+            updateCarrierInfoAndStatus(event.getShipUUID(), event.getRequest());
+        } catch (Exception e) {
+            log.error("Failed to handle carrier update event: {}", e.getMessage());
+        }
+    }
+
+
+    @EventListener
+    @Transactional
+    public void updateShippingStatus(ShipmentStatusUpdateEvent event) {
+        try {
+            log.info("Processing status update event for shipment: {} -> {}",
+                    event.getShipUUID(), event.getStatus());
+            updateShipmentStatusByUUID(event.getShipUUID(), event.getStatus());
+        } catch (Exception e) {
+            log.error("Failed to handle shipment status update event: {}", e.getMessage());
+        }
+    }
 
     //  (엔티티 재사용)
     @Transactional
-    public void updateCarrierInfoAndStatus(UUID shipUUID, CarrierUpdateRequest readyRequest) {
+    protected void updateCarrierInfoAndStatus(UUID shipUUID, CarrierUpdateRequest readyRequest) {
         // 한 번만 DB 조회
         Shipment shipment = shipmentRepository.findByShipUUID(shipUUID)
                 .orElseThrow(() -> new EntityNotFoundException("No shipment found for order: " + shipUUID));
@@ -78,7 +105,7 @@ public class ShipmentService {
     }
 
     @Transactional
-    public void updateShipmentStatusByUUID(UUID shipUUID, ExternalShippingStatus newStatus) {
+    protected void updateShipmentStatusByUUID(UUID shipUUID, ExternalShippingStatus newStatus) {
         Shipment shipment = shipmentRepository.findByShipUUID(shipUUID)
                 .orElseThrow(() -> new EntityNotFoundException("No shipment found for order: " + shipUUID));
         updateShipmentStatus(shipment, newStatus);
@@ -93,7 +120,7 @@ public class ShipmentService {
     private void updateShipmentStatus(Shipment shipment, ExternalShippingStatus newStatus) {
         shipment.updateShippingStatus(newStatus);
         shipment.processStatusChange(eventPublisher);
-        log.info("배송 상태 변경: {} -> {}", shipment.getShipUUID(), newStatus);
+        log.info("Change shipment status: {} -> {}", shipment.getShipUUID(), newStatus);
     }
 
 
@@ -127,7 +154,7 @@ public class ShipmentService {
     }
 
     public List<Shipment> getShipListByOrderUUID(List<UUID> orderUUIDs) {
-        return shipmentRepository.findByOrderUUIDin(orderUUIDs);
+        return shipmentRepository.findByOrderUUIDIn(orderUUIDs);
     }
 
 
