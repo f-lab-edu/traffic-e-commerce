@@ -1,0 +1,22 @@
+//shipment.proto
+syntax = "proto3";
+package com.ecommerce.proto;
+
+option java_multiple_files = true;
+option java_package = "com.ecommerce.proto";
+option java_outer_classname = "StockChangeMessage";
+
+
+message OrderCancelledEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  OrderCancellationType cancellation_type = 3; // 취소 유형
+  int64 cancelled_at = 4;                   // 취소 시간
+}
+
+enum OrderCancellationType {
+  CANCELLATION_TYPE_USER_REQUEST = 0;       // 사용자 요청
+  CANCELLATION_TYPE_PAYMENT_FAILED = 1;     // 결제 실패
+  CANCELLATION_TYPE_INVENTORY_INSUFFICIENT = 2; // 재고 부족
+  CANCELLATION_TYPE_SHIPMENT_FAILED = 3;    // 배송 실패
+  CANCELLATION_TYPE_SYSTEM_ERROR = 4;       // 시스템 오류
+}

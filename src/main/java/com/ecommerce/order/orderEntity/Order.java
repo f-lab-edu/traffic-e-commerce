@@ -2,7 +2,7 @@ package com.ecommerce.order.orderEntity;
 
 import com.ecommerce.order.dto.orderRequest.OrderCreateRequest;
 import com.ecommerce.order.dto.orderRequest.OrderItemRequest;
-import com.ecommerce.order.orderStatus.OrderStatus;
+import com.ecommerce.order.status.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
