@@ -56,8 +56,6 @@ public class Payment {
 
     private String failureReason;
 
-    private String cancelReason;
-
     public static Payment of(PaymentRequest request) {
         return Payment.builder()
                 .orderUUID(request.getOrderUUID())  // UUID 사용
@@ -103,7 +101,6 @@ public class Payment {
 
     public void cancelPayment(String cancelReason) {
         this.status = PaymentStatus.CANCELLED;
-        this.cancelReason = cancelReason;
         this.cancelledDt = LocalDateTime.now();
     }
 

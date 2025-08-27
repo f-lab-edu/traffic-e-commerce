@@ -18,6 +18,31 @@ public class ActiveStockEventPublisher {
 
     private final KafkaTemplate<String, byte[]> kafkaTemplate;
 
+    // 주문 여부 확인
+    public void publishStockActive(boolean active) {
+        try {
+
+            StockDeductEvent event = StockDeductEvent.newBuilder()
+//                    .setOrderUuid(orderUUID.toString())
+//                    .addItems(DeductItems.newBuilder()
+//                            .setProductUuid(productUUID.toString())
+//                            .setDeductQuantity(quantity)
+//                            .setRemainingStock(remainingStock)
+//                            .build())
+//                    .setDeductDt(System.currentTimeMillis())
+                    .build();
+
+
+
+            kafkaTemplate.send("product-events", "stock.check.response", event.toByteArray());
+//            log.info("Publish stock active item: orderUUID={}, productUUID={}", orderUUID, productUUID);
+        } catch (Exception e) {
+            log.error("Fail : publishing stock active {}", e.getMessage());
+        }
+
+    }
+
+
     // 재고 차감 성공
     public void publishStockDeduct(UUID orderUUID, UUID productUUID, int quantity, int remainingStock) {
         try {
@@ -52,7 +77,7 @@ public class ActiveStockEventPublisher {
                     .setCheckedDt(System.currentTimeMillis())
                     .build();
 
-            kafkaTemplate.send("product-events", "stock.insufficient", event.toByteArray());
+            kafkaTemplate.send("product-events", "stock.lacked", event.toByteArray());
             log.info("Publish stock lacked: orderUUID={}, productUUID={}", orderUUID, productUUID);
         } catch (Exception e) {
             log.error("Fail : publishing stock lacked {}", e.getMessage());
@@ -91,13 +116,13 @@ public class ActiveStockEventPublisher {
                 if (result.isSuccess()) {
                     eventBuilder.addItems(DeductItems.newBuilder()
                             .setProductUuid(result.getProductUUID().toString())
-                            .setDeductQuantity(result.getRemainingStock()) // 실제 차감된 수량으로 수정 필요
+                            .setDeductQuantity(result.getRemainingStock())
                             .setRemainingStock(result.getRemainingStock())
                             .build());
                 }
             }
 
-            kafkaTemplate.send("product-events", "stock.deducted", eventBuilder.build().toByteArray());
+            kafkaTemplate.send("product-events", "stock.bulk.deducted", eventBuilder.build().toByteArray());
             log.info("배치 재고 차감 이벤트 발행: 주문={}", orderUUID);
         } catch (Exception e) {
             log.error("Fail : publishing batch stock deduct {}", e.getMessage());
@@ -115,13 +140,13 @@ public class ActiveStockEventPublisher {
                 if (!result.isSuccess()) {
                     eventBuilder.addItems(LackedItems.newBuilder()
                             .setProductUuid(result.getProductUUID().toString())
-                            .setRequestedQuantity(0) // 실제 요청 수량으로 수정 필요
+                            .setRequestedQuantity(0)
                             .setAvailableStock(result.getRemainingStock())
                             .build());
                 }
             }
 
-            kafkaTemplate.send("product-events", "stock.insufficient", eventBuilder.build().toByteArray());
+            kafkaTemplate.send("product-events", "stock.lacked", eventBuilder.build().toByteArray());
             log.info("배치 재고 실패 이벤트 발행: 주문={}", orderUUID);
         } catch (Exception e) {
             log.error("Fail : publishing batch stock failed {}", e.getMessage());

@@ -2,7 +2,10 @@ package com.ecommerce.order.orderEntity;
 
 import com.ecommerce.order.dto.orderRequest.OrderCreateRequest;
 import com.ecommerce.order.dto.orderRequest.OrderItemRequest;
+import com.ecommerce.order.dto.orderResponse.OrderItemResponse;
 import com.ecommerce.order.status.OrderStatus;
+import com.ecommerce.proto.OrderCreatedEvent;
+import com.ecommerce.proto.OrderCreatedItem;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Entity
 @Table(name = "orders")
@@ -69,6 +74,28 @@ public class Order {
         return order;
     }
 
+    public static Order of(OrderCreatedEvent event) {
+
+        List<OrderItem> orderItems = event.getItemsList().stream().map(item -> OrderItem.builder()
+                .productUUID(UUID.fromString(item.getProductUUID()))
+                .quantity(item.getQuantity())
+                .price(BigDecimal.valueOf(item.getPrice()))
+                .build()
+        ).toList();
+
+        return Order.builder()
+                .orderUUID(UUID.fromString(event.getOrderUUID()))
+                .userId(UUID.fromString(event.getUserId()))
+                .address(event.getAddress())
+                .contact(event.getContact())
+                .status(OrderStatus.ORDERED)
+                .totalPrice(BigDecimal.valueOf(event.getTotalPrice()))
+                .orderItems(orderItems)
+                .build();
+
+    }
+
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -77,6 +104,10 @@ public class Order {
 
     public void cancel() {
         this.status = OrderStatus.CANCELLED;
+    }
+
+    public void updateStatus(OrderStatus status) {
+        this.status = status;
     }
 
 }

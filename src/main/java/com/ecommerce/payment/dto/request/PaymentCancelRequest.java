@@ -24,7 +24,6 @@ public class PaymentCancelRequest {
     public static PaymentCancelRequest of(Payment request) {
         return PaymentCancelRequest.builder().transactionId(request.getTransactionId())
                 .amount(request.getAmount())
-                .reason(request.getCancelReason())
                 .build();
     }
 

@@ -11,5 +11,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     List<Payment> findByOrderUUID(UUID orderUUID);
 
-    List<Payment> findByOrderUUIDAndStatus(UUID orderUUID, PaymentStatus status);
+    Payment findByOrderUUIDAndStatus(UUID orderUUID, PaymentStatus status);
 }

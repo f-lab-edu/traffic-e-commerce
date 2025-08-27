@@ -35,7 +35,7 @@ public class ShipmentService {
      * 자동으로 택배사에 배송요청 이벤트 발행
      */
     @Transactional
-    public void createExecuteShipment(Shipment shipment) {
+    public void createShipExecution(Shipment shipment) {
         try {
             // 중복 배송 생성 방지
             Optional<Shipment> existedShip = shipmentRepository.findByOrderUUID(shipment.getOrderUUID());
@@ -56,7 +56,7 @@ public class ShipmentService {
             eventPublisher.publishShipCreated(shipment); // 배송 생성 이벤트 발행
             log.info("Shipment created: {}", shipment.getShipUUID());
 
-            // 외부 택배사에 비동기 요청
+            // 외부 택배사에 요청
             externalCarrierService.requestDelivery(shipment);
         } catch (Exception e) {
             log.info("Failed to execute shipment for order: {} {}", shipment.getOrderUUID(), e.getMessage());

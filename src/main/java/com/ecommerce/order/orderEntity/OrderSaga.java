@@ -65,7 +65,26 @@ public class OrderSaga {
         if (startedAt == null) startedAt = LocalDateTime.now();
     }
 
-    // 사가 상태 전환 메서드들
+    // 사가 상태 전환 메서드 : 재고 확인 요청 시작
+    public void requestStockQtyChecked() {
+        this.currentStep = SagaStep.STOCK;
+    }
+
+    public void execStockDeduction() {
+        this.currentStep = SagaStep.STOCK;
+    }
+
+    public void completeStockDeduction() {
+        this.productStatus = ProductStatus.DEDUCTED;
+    }
+
+    // 사가 상태 전환 메서드 : 재고 부족, 결제 환불
+    public void failStockDeduction() {
+        this.productStatus = ProductStatus.INSUFFICIENT;
+        this.currentStep = SagaStep.COMPENSATING;
+    }
+
+    // 사가 상태 전환 메서드: 결제 요청 시작
     public void startPayment() {
         this.currentStep = SagaStep.PAYMENT;
         this.sagaStatus = SagaStatus.IN_PROGRESS;
@@ -75,27 +94,13 @@ public class OrderSaga {
         this.paymentStatus = PaymentStatus.COMPLETED;
     }
 
-    public void failPayment(String reason) {
+    public void failPayment() {
         this.paymentStatus = PaymentStatus.FAILED;
-        this.failureReason = reason;
         this.sagaStatus = SagaStatus.FAILED;
         this.failedAt = LocalDateTime.now();
     }
 
-    public void startInventoryDeduction() {
-        this.currentStep = SagaStep.INVENTORY;
-    }
-
-    public void completeInventoryDeduction() {
-        this.productStatus = ProductStatus.DEDUCTED;
-    }
-
-    public void failInventoryDeduction(String reason) {
-        this.productStatus = ProductStatus.INSUFFICIENT;
-        this.failureReason = reason;
-        this.currentStep = SagaStep.COMPENSATING;
-    }
-
+    // 사가 상태 전환 메서드 : 배송 요청 시작
     public void startShipment() {
         this.currentStep = SagaStep.SHIPMENT;
     }
@@ -106,7 +111,8 @@ public class OrderSaga {
         this.completedAt = LocalDateTime.now();
     }
 
-    public void startCompensation() {
+    // 사가 상태 전환 메서드 : 결제 환불
+    public void execCompensation() {
         this.currentStep = SagaStep.COMPENSATING;
         this.sagaStatus = SagaStatus.COMPENSATING;
     }

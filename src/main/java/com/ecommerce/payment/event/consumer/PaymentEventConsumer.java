@@ -1,8 +1,7 @@
 package com.ecommerce.payment.event.consumer;
 
-import com.ecommerce.payment.dto.request.PaymentRequest;
 import com.ecommerce.payment.paymenrService.PaymentService;
-import com.ecommerce.proto.EdaMessage;
+import com.ecommerce.proto.PaymentRequestedEvent;
 import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +19,7 @@ public class PaymentEventConsumer {
 
     private final PaymentService paymentService;
 
-    @KafkaListener(topics = "order-events", groupId = "payment-service")
+    @KafkaListener(topics = "saga-events", groupId = "payment-service")
     public void consumeOrderEvents(ConsumerRecord<String, byte[]> record) {
         try {
             String key = record.key();
@@ -33,42 +32,49 @@ public class PaymentEventConsumer {
             }
 
         } catch (Exception e) {
-            log.error("Payment error : consume order event {}", e.getMessage());
+            log.error("[Payment] consume error : order event {}", e.getMessage());
         }
     }
 
     private void operateOrderCreated(byte[] eventBytes) {
         try {
-            EdaMessage.OrderCreatedEvent event = EdaMessage.OrderCreatedEvent.parseFrom(eventBytes);
+            UUID orderUUID = parserUUID(eventBytes);
+            BigDecimal totalPrice = parsePurchasedAmount(eventBytes);
 
-            UUID orderUUID = UUID.fromString(event.getOrderUUID());
-            BigDecimal totalPrice = BigDecimal.valueOf(event.getTotalPrice());
-
-            // 결제 대기 상태 생성 - 실제 결제 정보는 추후 사용자 입력으로 받음
+            // 결제 대기 상태 생성 > PG 결제 요청
             paymentService.createPendingPayment(orderUUID, totalPrice);
-        } catch (InvalidProtocolBufferException e) {
-            log.error("ProtoBuf parse error : {}", e.getMessage());
         } catch (Exception e) {
-            log.error("created Order  error : {}", e.getMessage());
+            log.error("[Payment] created Order  error : {}", e.getMessage());
         }
-
-
     }
 
     private void operateOrderCancelled(byte[] eventBytes) {
         try {
-            EdaMessage.OrderCreatedEvent event = EdaMessage.OrderCreatedEvent.parseFrom(eventBytes);
-
-            UUID orderUUID = UUID.fromString(event.getOrderUUID());
-
+            UUID orderUUID = parserUUID(eventBytes);
             paymentService.cancelPaymentsByOrderUUID(orderUUID);
-        } catch (InvalidProtocolBufferException e) {
-            log.error("ProtoBuf parse error : {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Canceled Order  error : {}", e.getMessage());
+            log.error("[Payment] Canceled Order  error : {}", e.getMessage());
         }
+    }
 
+    private UUID parserUUID(byte[] eventBytes) {
+        try {
+            PaymentRequestedEvent event = PaymentRequestedEvent.parseFrom(eventBytes);
+            return UUID.fromString(event.getOrderUuid());
+        } catch (InvalidProtocolBufferException e) {
+            log.error("[Payment] parsing UUID error : {}", e.getMessage());
+            throw new RuntimeException("Failed to parse order UUID", e);
+        }
+    }
 
+    private BigDecimal parsePurchasedAmount(byte[] eventBytes) {
+        try {
+            PaymentRequestedEvent event = PaymentRequestedEvent.parseFrom(eventBytes);
+            return BigDecimal.valueOf(event.getAmount());
+        } catch (InvalidProtocolBufferException e) {
+            log.error("[Payment] parsing purchased amount error : {}", e.getMessage());
+            throw new RuntimeException("Failed to parse order UUID", e);
+        }
     }
 
 }

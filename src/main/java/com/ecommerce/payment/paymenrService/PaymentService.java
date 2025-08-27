@@ -3,7 +3,6 @@ package com.ecommerce.payment.paymenrService;
 import com.ecommerce.payment.dto.PaymentDto;
 import com.ecommerce.payment.dto.request.PaymentCancelRequest;
 import com.ecommerce.payment.dto.request.PaymentGatewayRequest;
-import com.ecommerce.payment.dto.request.PaymentProcessRequest;
 import com.ecommerce.payment.dto.response.PaymentGatewayResponse;
 import com.ecommerce.payment.event.producer.PaymentEventProducer;
 import com.ecommerce.payment.paymentDomain.Payment;
@@ -35,32 +34,28 @@ public class PaymentService {
         return payments.stream().map(this::convertToDto).toList();
     }
 
-    /**
-     * 주문 생성 이벤트 수신 시 호출 - 결제 대기 상태 생성
-     */
-    public PaymentDto createPendingPayment(UUID orderUUID, BigDecimal amount) {
-        Payment payment = Payment.of(orderUUID, amount);
-        Payment savedPayment = paymentRepository.save(payment);
-        return convertToDto(savedPayment);
-    }
 
-    /**
-     * 결제 정보 제출 시 호출 - 실제 결제 처리
-     */
+    // 주문 생성 이벤트 수신 시 호출 - 결제 대기 상태 생성
     @Transactional
-    public PaymentDto processPaymentWithDetails(PaymentProcessRequest request) {
-        // 결제 정보 조회
-        List<Payment> payments = paymentRepository.findByOrderUUIDAndStatus(request.getOrderUUID(), PaymentStatus.PENDING);
+    public void createPendingPayment(UUID orderUUID, BigDecimal amount) {
+        Payment payment = Payment.of(orderUUID, amount);
 
-        if (payments.isEmpty()) {
-            throw new EntityNotFoundException("Not exists pending payments");
+        // 결제 정보 조회
+        Payment findPayment = paymentRepository.findByOrderUUIDAndStatus(payment.getOrderUUID(), PaymentStatus.PENDING);
+        if (findPayment != null) {
+            throw new EntityNotFoundException("duplicated pending payments");
         }
 
-        Payment payment = payments.get(0);
-        payment.savePaymentMethod(request.getPaymentMethod());
+        Payment pendingPayment = paymentRepository.save(payment);
+        processPaymentWithDetails(pendingPayment);
+    }
 
+
+    // 실제 결제 처리
+    @Transactional
+    public void processPaymentWithDetails(Payment payment) {
         // 결제 게이트웨이 요청 생성
-        PaymentGatewayRequest gatewayRequest = PaymentGatewayRequest.createGatewayRequest(payment, request);
+        PaymentGatewayRequest gatewayRequest = PaymentGatewayRequest.createGatewayRequest(payment);
 
         // 결제 게이트웨이 호출
         PaymentGatewayResponse gatewayResponse = gatewayService.processPayment(gatewayRequest);
@@ -70,16 +65,14 @@ public class PaymentService {
             payment.completePayment(gatewayResponse.getTransactionId());
             Payment updatedPayment = paymentRepository.save(payment);
             paymentEventProducer.publishPaymentSuccess(updatedPayment);
-            return convertToDto(updatedPayment);
         } else {
             payment.failPayment(gatewayResponse.getMessage());
             Payment updatedPayment = paymentRepository.save(payment);
             paymentEventProducer.publishPaymentFailed(updatedPayment);
-            return convertToDto(updatedPayment);
         }
     }
 
-    // 주문취소로 자동결제취소 : UUID만 받는 오버로드 cancel 메서드
+    // 주문 취소로 자동 결제 취소 : UUID만 받는 오버로드 cancel 메서드
     public void cancelPaymentsByOrderUUID(UUID orderUUID) {
 
         String defaultReason = "Order event : cancel";
@@ -103,11 +96,9 @@ public class PaymentService {
     }
 
 
-    /**
-     * 결제 취소
-     */
+    // 결제 취소
     @Transactional
-    public PaymentDto cancelPayment(Long paymentId, String reason) {
+    public void cancelPayment(Long paymentId, String reason) {
         Payment payment = paymentRepository.findById(paymentId).orElseThrow(() -> new EntityNotFoundException("Cannot find payment info"));
 
         if (!payment.getStatus().equals(PaymentStatus.COMPLETED)) {
@@ -115,7 +106,6 @@ public class PaymentService {
         }
 
         PaymentCancelRequest cancelRequest = PaymentCancelRequest.of(payment);
-
         PaymentGatewayResponse gatewayResponse = gatewayService.cancelPayment(cancelRequest);
 
         if (gatewayResponse.isSuccess()) {
@@ -126,7 +116,6 @@ public class PaymentService {
             paymentEventProducer.publishPaymentCancelled(updatedPayment);
             log.info("Finish cancelling payment : payment ID {}, order ID {}", updatedPayment.getId(), updatedPayment.getOrderUUID());
 
-            return convertToDto(updatedPayment);
         } else {
             log.error("Fail cancelling payment: payment ID {}", payment.getId());
             throw new RuntimeException("Error encounters on cancelling payment " + gatewayResponse.getMessage());
@@ -147,7 +136,6 @@ public class PaymentService {
                 .failedDt(payment.getFailedDt())
                 .cancelledDt(payment.getCancelledDt())
                 .failureReason(payment.getFailureReason())
-                .cancelReason(payment.getCancelReason())
                 .build();
     }
 

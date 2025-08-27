@@ -53,4 +53,7 @@ public interface ProductRepository extends JpaRepository<Product, String> {
             "where p.productUUID in :productUUIDs order by p.productUUID")
     List<Product> findByProductUUIDsWithLock(@Param("productUUIDs") List<UUID> productUUIDs);
 
+    // 재고 조회
+    List<Product> findAllByProductUUID(UUID productUUID);
+
 }
