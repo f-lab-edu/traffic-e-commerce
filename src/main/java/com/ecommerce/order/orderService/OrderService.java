@@ -6,7 +6,8 @@ import com.ecommerce.order.dto.orderResponse.OrderResponse;
 import com.ecommerce.order.orderEntity.Order;
 import com.ecommerce.order.orderEntity.OrderItem;
 import com.ecommerce.order.orderRepository.OrderRepository;
-import com.ecommerce.proto.EdaMessage;
+import com.ecommerce.proto.OrderCreatedEvent;
+import com.ecommerce.proto.OrderCreatedItem;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -59,7 +60,6 @@ public class OrderService {
         order.cancel();
         Order cancelledOrder = orderRepository.save(order);
 
-        // 카프카 메세지 ProtoBuf 직렬화
         byte[] eventByte = toCreateOrderProtoBuf(cancelledOrder);
         kafkaTemplate.send("order-events", "order.cancelled", eventByte);
 
@@ -85,7 +85,7 @@ public class OrderService {
     }
 
     private byte[] toCreateOrderProtoBuf(Order order) {
-        var protoBuilder = EdaMessage.OrderCreatedEvent.newBuilder()
+        var protoBuilder = OrderCreatedEvent.newBuilder()
                 .setOrderUUID(order.getOrderUUID().toString())
                 .setUserId(order.getUserId().toString())
                 .setAddress(order.getAddress())
@@ -96,8 +96,7 @@ public class OrderService {
 
         for (OrderItem item : order.getOrderItems()) {
             protoBuilder.addItems(
-
-                    EdaMessage.OrderItem.newBuilder()
+                    OrderCreatedItem.newBuilder()
                             .setProductUUID(item.getProductUUID().toString())
                             .setQuantity(item.getQuantity())
                             .setPrice(item.getPrice().doubleValue())
@@ -105,7 +104,6 @@ public class OrderService {
             );
         }
         return protoBuilder.build().toByteArray();
-
     }
 
 

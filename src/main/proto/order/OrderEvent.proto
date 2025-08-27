@@ -1,0 +1,189 @@
+//shipment.proto
+syntax = "proto3";
+package com.ecommerce.proto;
+
+option java_multiple_files = true;
+option java_package = "com.ecommerce.proto";
+option java_outer_classname = "OrderEvent";
+
+
+// 주문 생성 이벤트
+message OrderCreatedEvent {
+  string orderUUID = 1;
+  string userId = 2;
+  string address = 3;
+  string contact = 4;
+  double totalPrice = 5;
+  repeated OrderCreatedItem items = 6;
+  string status = 7;
+}
+
+
+message OrderCreatedItem {
+  string productUUID = 1;
+  int32 quantity = 2;
+  double price = 3;
+}
+
+
+// 주문 상태 변경 이벤트
+message OrderStatusChangedEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  OrderStatus previous_status = 2;          // 이전 상태
+  OrderStatus current_status = 3;           // 현재 상태
+  int64 changed_dt = 4;                     // 변경 시간 (Unix timestamp)
+}
+
+
+// 주문 취소 이벤트
+message OrderCancelledEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  int64 cancelled_dt = 2;                   // 취소 시간
+}
+
+
+// 재고확인 요청 이벤트
+message SagaStockCheckEvent {
+  string order_uuid = 1;
+  repeated DeductItem items = 2;
+  int64 deduct_dt = 3;
+}
+
+
+// 재고차감 요청 이벤트
+message SagaStockDeductEvent {
+  string order_uuid = 1;
+  repeated DeductItem items = 2;
+  int64 deduct_dt = 3;
+}
+
+
+// 재고 차감할 상품 정보
+message DeductItem {
+  string product_uuid = 1;
+  int32 deduct_quantity = 2;
+  int32 remaining_stock = 3;
+}
+
+
+// 재고 복구 이벤트
+message SagaStockRestoreEvent {
+  string order_uuid = 1;
+  repeated RestoreItem items = 2;
+  int64 restored_dt = 3;
+}
+
+
+// 복구할 상품 정보
+message RestoreItem {
+  string product_uuid = 1;
+  int32 restored_quantity = 2;
+  int32 current_stock = 3;
+}
+
+
+// 결제 요청 이벤트
+message SagaPaymentRequestEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  double totalPrice = 2;                    // 결제 금액
+  int64 requested_dt = 3;                   // 요청 시간 (Unix timestamp)
+}
+
+// 결제 취소 요청 이벤트
+message SagaPaymentCancelRequestEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  int64 requested_dt = 2;                   // 요청 시간 (Unix timestamp)
+}
+
+
+// 배송 요청 이벤트
+message SagaShipmentRequestEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  string user_id = 2;                       // 주문자 ID
+  string delivery_address = 3;              // 배송 주소
+  string contact_phone = 4;                 // 연락처
+  repeated ShipmentItem items = 5;          // 배송할 상품 목록
+  int64 requested_dt = 8;                   // 요청 시간 (Unix timestamp)
+}
+
+// 배송 취소 요청 이벤트
+message SagaShipmentCancelRequestEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  int64 requested_dt = 2;                   // 요청 시간 (Unix timestamp)
+}
+
+
+// 사가 시작
+message SagaStartedEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  SagaType saga_type = 2;                   // 사가 유형
+  repeated SagaStep planned_steps = 3;      // 계획된 단계들
+  int64 started_dt = 4;                     // 시작 시간 (Unix timestamp)
+}
+
+// 사가 단계 완료 이벤트
+message SagaStepCompletedEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  SagaStep step = 2;                        // 완료된 단계
+  bool success = 3;                         // 성공 여부
+  string error_message = 4;                 // 에러 메시지 (실패 시)
+  int64 completed_dt = 5;                   // 완료 시간 (Unix timestamp)
+}
+
+// 배송 상품 정보
+message ShipmentItem {
+  string product_uuid = 1;                  // 상품 UUID
+  int32 quantity = 2;                       // 수량
+  double price = 3;                         // 가격
+}
+
+
+// 주문 상태
+enum OrderStatus {
+  ORDER_STATUS_CREATED = 0;                 // 주문 생성
+  ORDER_STATUS_PAYMENT_REQUESTED = 1;       // 결제 요청
+  ORDER_STATUS_PAID = 2;                    // 결제 완료
+  ORDER_STATUS_INVENTORY_CONFIRMED = 3;     // 재고 확보
+  ORDER_STATUS_SHIPPED = 4;                 // 배송 시작
+  ORDER_STATUS_DELIVERED = 5;               // 배송 완료
+  ORDER_STATUS_CANCELLED = 6;               // 주문 취소
+  ORDER_STATUS_FAILED = 7;                  // 주문 실패
+}
+
+enum OrderCancellationType {
+  CANCELLATION_TYPE_USER_REQUEST = 0;       // 사용자 요청
+  CANCELLATION_TYPE_PAYMENT_FAILED = 1;     // 결제 실패
+  CANCELLATION_TYPE_INVENTORY_INSUFFICIENT = 2; // 재고 부족
+  CANCELLATION_TYPE_SHIPMENT_FAILED = 3;    // 배송 실패
+  CANCELLATION_TYPE_SYSTEM_ERROR = 4;       // 시스템 오류
+}
+
+
+// 사가 유형
+enum SagaType {
+  SAGA_TYPE_UNKNOWN = 0;                    // 알 수 없음
+  SAGA_TYPE_ORDER_PROCESSING = 1;           // 주문 처리 사가
+  SAGA_TYPE_ORDER_CANCELLATION = 2;         // 주문 취소 사가
+  SAGA_TYPE_PAYMENT_PROCESSING = 3;         // 결제 처리 사가
+  SAGA_TYPE_REFUND_PROCESSING = 4;          // 환불 처리 사가
+}
+
+
+// 사가 단계
+enum SagaStep {
+  SAGA_STEP_UNKNOWN = 0;                    // 알 수 없음
+  SAGA_STEP_PAYMENT = 1;                    // 결제 단계
+  SAGA_STEP_INVENTORY = 2;                  // 재고 처리 단계
+  SAGA_STEP_SHIPMENT = 3;                   // 배송 단계
+  SAGA_STEP_NOTIFICATION = 4;               // 알림 단계
+  SAGA_STEP_COMPENSATION = 5;               // 보상 트랜잭션 단계
+}
+
+// 사가 결과
+enum SagaResult {
+  SAGA_RESULT_UNKNOWN = 0;                  // 알 수 없음
+  SAGA_RESULT_SUCCESS = 1;                  // 성공
+  SAGA_RESULT_FAILED = 2;                   // 실패
+  SAGA_RESULT_COMPENSATED = 3;              // 보상 완료
+  SAGA_RESULT_TIMEOUT = 4;                  // 타임아웃
+}

@@ -6,7 +6,7 @@ import com.ecommerce.order.dto.orderResponse.OrderResponse;
 import com.ecommerce.order.orderEntity.Order;
 import com.ecommerce.order.orderRepository.OrderItemRepository;
 import com.ecommerce.order.orderRepository.OrderRepository;
-import com.ecommerce.order.orderStatus.OrderStatus;
+import com.ecommerce.order.status.OrderStatus;
 import com.ecommerce.proto.EdaMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;

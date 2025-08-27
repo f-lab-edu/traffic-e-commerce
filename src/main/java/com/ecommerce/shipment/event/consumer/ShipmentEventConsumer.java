@@ -25,10 +25,11 @@ public class ShipmentEventConsumer {
             String key = record.key();
             byte[] value = record.value();
             log.info("Shipment consume: order key={}", key);
-            if ("order.succeed".equals(key)) {
-                operateOrderSucceed(value);
-            } else if ("order.cancelled".equals(key)) {
-                operateOrderCancelled(value);
+
+            if ("shipment.requested".equals(key)) {
+                operateShipRequested(value);
+            } else if ("shipment.cancelled".equals(key)) {
+                operateShipCancelled(value);
             }
 
         } catch (Exception e) {
@@ -36,23 +37,24 @@ public class ShipmentEventConsumer {
         }
     }
 
-    private void operateOrderSucceed(byte[] eventBytes) {
+    private void operateShipRequested(byte[] eventBytes) {
         try {
             UUID orderUUID = parseOrderUUID(eventBytes);
             Shipment succeedOrder = shipmentService.getShipmentByOrderUUID(orderUUID);
-            shipmentService.createExecuteShipment(succeedOrder);
+            // Shipment protocol buffer로 변환한뒤 로직실행
+            shipmentService.createShipExecution(succeedOrder);
         } catch (Exception e) {
-            log.error("[shipment-operate] : created Order error : {}", e.getMessage());
+            log.error("[shipment-consumer] : request ship error : {}", e.getMessage());
         }
     }
 
-    private void operateOrderCancelled(byte[] eventBytes) {
+    private void operateShipCancelled(byte[] eventBytes) {
         try {
             UUID orderUUID = parseOrderUUID(eventBytes);
             Shipment updatedShip = shipmentService.getShipmentByOrderUUID(orderUUID);
             shipmentService.cancelShipment(updatedShip);
         } catch (Exception e) {
-            log.error("Canceled Order  error : {}", e.getMessage());
+            log.error("[shipment-consumer] : cancel ship  error : {}", e.getMessage());
         }
     }
 

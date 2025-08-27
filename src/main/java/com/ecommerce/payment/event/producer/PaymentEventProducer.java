@@ -1,7 +1,7 @@
 package com.ecommerce.payment.event.producer;
 
 import com.ecommerce.payment.paymentDomain.Payment;
-import com.ecommerce.proto.PaymentMessage;
+import com.ecommerce.proto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -17,7 +17,7 @@ public class PaymentEventProducer {
     private final KafkaTemplate<String, byte[]> kafkaTemplate;
 
     public void publishPaymentSuccess(Payment payment) {
-        PaymentMessage.PaymentSuccessEvent event = PaymentMessage.PaymentSuccessEvent.newBuilder()
+        PaymentSuccessEvent event = PaymentSuccessEvent.newBuilder()
                 .setOrderUuid(payment.getOrderUUID().toString())
                 .setPaymentId(payment.getId())
                 .setAmount(payment.getAmount().doubleValue())
@@ -31,7 +31,7 @@ public class PaymentEventProducer {
     }
 
     public void publishPaymentFailed(Payment payment) {
-        PaymentMessage.PaymentFailedEvent event = PaymentMessage.PaymentFailedEvent.newBuilder()
+        PaymentFailedEvent event = PaymentFailedEvent.newBuilder()
                 .setOrderUuid(payment.getOrderUUID().toString())
                 .setPaymentId(payment.getId())
                 .setAmount(payment.getAmount().doubleValue())
@@ -45,11 +45,10 @@ public class PaymentEventProducer {
     }
 
     public void publishPaymentCancelled(Payment payment) {
-        PaymentMessage.PaymentCancelledEvent event = PaymentMessage.PaymentCancelledEvent.newBuilder()
+        PaymentCancelledEvent event = PaymentCancelledEvent.newBuilder()
                 .setOrderUuid(payment.getOrderUUID().toString())
                 .setPaymentId(payment.getId())
                 .setAmount(payment.getAmount().doubleValue())
-                .setCancelReason(payment.getCancelReason())
                 .setCancelledDt(payment.getCancelledDt().toInstant(ZoneOffset.UTC).toEpochMilli())
                 .build();
 

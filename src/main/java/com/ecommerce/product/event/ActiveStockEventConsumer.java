@@ -23,20 +23,39 @@ public class ActiveStockEventConsumer {
 
     private final ProductService productService;
 
-    @KafkaListener(topics = "order-event", groupId = "product-service")
+    @KafkaListener(topics = "product-events", groupId = "product-service")
     public void consumeOrderEvents(ConsumerRecord<String, byte[]> record, Acknowledgment ack) {
         try {
             String key = record.key();
             byte[] value = record.value();
-            log.info("Payment consume: order key={}", key);
-            if ("stock.deduction.request".equals(key)) {
-                operateStockDeduction(value);
-            } else if ("stock.restore.request".equals(key)) {
-                operateStockRestoration(value);
+            log.info("Stock consume: order key={}", key);
+
+            switch (key) {
+                case "stock.check"  :  operateStockCheck(value);
+                case "stock.deduct" :  operateStockDeduction(value);
+                case "stock.restore":  operateStockRestoration(value);
+                break;
             }
             ack.acknowledge();
         } catch (Exception e) {
             log.error("Stock error : consume order event {}", e.getMessage());
+        }
+    }
+
+    private void operateStockCheck(byte[] value) {
+
+        try {
+            StockDeductEvent deductEvent = StockDeductEvent.parseFrom(value);
+
+            List<StockDeductRequest> checkRequest = deductEvent.getItemsList().stream()
+                    .map(item -> new StockDeductRequest(UUID.fromString(item.getProductUuid()), item.getDeductQuantity()))
+                    .collect(Collectors.toList());
+
+            productService.hasStockActive(checkRequest);
+        } catch (InvalidProtocolBufferException e) {
+            log.error("Parsing stock check error: {}", e.getMessage());
+        } catch (RuntimeException e) {
+            log.error("Stock check error: {}", e.getMessage());
         }
     }
 
@@ -45,10 +64,10 @@ public class ActiveStockEventConsumer {
             StockDeductEvent deductEvent = StockDeductEvent.parseFrom(value);
             UUID orderUUID = UUID.fromString(deductEvent.getOrderUuid());
 
-            List<StockDeductRequest> deductReqLit = deductEvent.getItemsList().stream()
+            List<StockDeductRequest> deductReqList = deductEvent.getItemsList().stream()
                     .map(item -> new StockDeductRequest(UUID.fromString(item.getProductUuid()), item.getDeductQuantity()))
                     .collect(Collectors.toList());
-            productService.deductStocks(deductReqLit, orderUUID);
+            productService.deductStocks(deductReqList, orderUUID);
 
         } catch (InvalidProtocolBufferException e) {
             log.error("Parsing deduction error: {}", e.getMessage());

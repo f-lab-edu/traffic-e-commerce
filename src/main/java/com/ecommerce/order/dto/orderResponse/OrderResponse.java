@@ -1,6 +1,6 @@
 package com.ecommerce.order.dto.orderResponse;
 
-import com.ecommerce.order.orderStatus.OrderStatus;
+import com.ecommerce.order.status.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

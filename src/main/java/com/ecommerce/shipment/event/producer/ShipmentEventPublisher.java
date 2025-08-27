@@ -17,7 +17,7 @@ import java.time.ZoneOffset;
 @RequiredArgsConstructor
 public class ShipmentEventPublisher {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, byte[]> kafkaTemplate;
 
     // 배송 생성 이벤트 발행 (택배사)
     public void publishShipCreated(Shipment shipment) {
@@ -27,8 +27,8 @@ public class ShipmentEventPublisher {
                 .setStatus(shipment.getStatus().toKafkaString())
                 .setEstmtDeliverDt(shipment.getEstmtDeliverDt().toInstant(ZoneOffset.UTC).toEpochMilli()).build();
 
-        log.info("Publishing shipment created event: {}", shipCreateEvent);
-        kafkaTemplate.send("shipment", "created", shipCreateEvent.toByteArray());
+        log.info("Publishing shipment.created event: {}", shipCreateEvent);
+        kafkaTemplate.send("shipment-events", "shipment.created", shipCreateEvent.toByteArray());
     }
 
     // 배송 실패 이벤트 발행 (주문 도메인)
@@ -38,8 +38,8 @@ public class ShipmentEventPublisher {
                 .setShipUuid(shipment.getShipUUID().toString())
                 .setFailedDt(shipment.getUpdtDt().toInstant(ZoneOffset.UTC).toEpochMilli()).build();
 
-        log.info("Publishing shipment failed event: {}", shipmentFailedEvent);
-        kafkaTemplate.send("shipment", "failed", shipmentFailedEvent.toByteArray());
+        log.info("Publishing shipment.failed event: {}", shipmentFailedEvent);
+        kafkaTemplate.send("shipment-events", "shipment.failed", shipmentFailedEvent.toByteArray());
     }
 
     // 배송 상태 변경 이벤트 발행 (내부 확인용)
@@ -52,8 +52,8 @@ public class ShipmentEventPublisher {
                 .setTrackingNumber(shipment.getTrackingNumber())
                 .setChangedAt(shipment.getUpdtDt().toInstant(ZoneOffset.UTC).toEpochMilli()).build();
 
-        log.info("Publishing shipment status changed event: {}", changedEvent);
-        kafkaTemplate.send("shipment", "changed", changedEvent.toByteArray());
+        log.info("Publishing shipment.changed event: {}", changedEvent);
+        kafkaTemplate.send("shipment-events", "shipment.changed", changedEvent.toByteArray());
     }
 
     // 배송 완료 이벤트 발행 (주문 도메인)
@@ -64,7 +64,7 @@ public class ShipmentEventPublisher {
                 .setCompletedDt(shipment.getUpdtDt().toInstant(ZoneOffset.UTC).toEpochMilli())
                 .build();
 
-        log.info("Publishing delivery.completed event: {}", shipComplete);
-        kafkaTemplate.send("shipment", "completed", shipComplete.toByteArray());
+        log.info("Publishing shipment.completed event: {}", shipComplete);
+        kafkaTemplate.send("shipment-events", "shipment.completed", shipComplete.toByteArray());
     }
 }

@@ -16,6 +16,6 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
     Optional<Shipment> findByShipUUID(UUID shipUUID);
 
     // 여러 주문의 배송 조회 목록 조회 (유저의 전체 배송)
-    List<Shipment> findByOrderUUIDin(List<UUID> orderUUIDs);
+    List<Shipment> findByOrderUUIDIn(List<UUID> orderUUIDs);
 
 }

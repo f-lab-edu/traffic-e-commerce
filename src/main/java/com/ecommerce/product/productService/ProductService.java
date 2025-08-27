@@ -53,6 +53,21 @@ public class ProductService {
         return sellerProducts.stream().map(ProductResponse::from).collect(Collectors.toList());
     }
 
+    public void hasStockActive(List<StockDeductRequest> requests) {
+
+        boolean hasStockActive = false;
+
+        for(StockDeductRequest request : requests) {
+            List<Product> productList = productRepository.findAllByProductUUID(request.getProductUUID());
+
+            if(productList.size() <= request.getQuantity()) {
+                hasStockActive = true;
+            }
+        }
+
+
+        eventPublisher.publishStockActive(hasStockActive);
+    }
 
     // 판매자: 상품 최초 등록
     public Product registerProduct(String sellerId, ProductRegisterRequest registerRequest) {

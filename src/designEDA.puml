@@ -1,0 +1,76 @@
+@startuml
+!theme plain
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+participant U as "Order"
+participant O as "Order Service\n(Orchestrator)"
+participant P as "Product Service"
+participant Pay as "Payment Service"
+participant S as "Shipment Service"
+participant K as "Kafka"
+
+note over O: 사가 오케스트레이션 패턴
+
+== 1. 주문 생성 ==
+U -> O: POST /orders (주문 생성)
+O -> O: Order 엔티티 생성 (ORDERED)
+O -> K: order.created 이벤트 발행
+
+== 2. 재고 확인 단계 ==
+O -> K: stock.check.requested 이벤트 발행
+K -> P: stock.check.requested 수신
+P -> P: 재고 확인 로직 실행
+
+alt 재고 충분
+    P -> P: 재고 차감 & 예약
+    P -> K: stock.deducted 이벤트 발행
+    K -> O: stock.deducted 수신
+    O -> O: 주문 상태 → STOCK_CONFIRMED
+    
+    == 3. 결제 요청 단계 ==
+    O -> K: payment.requested 이벤트 발행
+    K -> Pay: payment.requested 수신
+    Pay -> Pay: 결제 대기 상태 생성
+
+
+    Pay -> Pay: PG 결제 처리
+    
+    alt 결제 성공
+        Pay -> K: payment.success 이벤트 발행
+        K -> O: payment.success 수신
+        O -> O: 주문 상태 → PAID
+        
+        == 4. 배송 요청 단계 ==
+        O -> K: shipment.requested 이벤트 발행
+        K -> S: shipment.requested 수신
+        S -> S: 배송 준비 & 택배사 연동
+        S -> K: shipment.created 이벤트 발행
+        K -> O: shipment.created 수신
+        O -> O: 주문 상태 → SHIPPED
+        
+        == 5. 배송 완료 ==
+        S -> S: 택배사 배송 진행
+        S -> K: shipment.completed 이벤트 발행
+        K -> O: shipment.completed 수신
+        O -> O: 주문 상태 → DELIVERED
+        
+    else 결제 실패
+        Pay -> K: payment.failed 이벤트 발행
+        K -> O: payment.failed 수신
+        O -> O: 보상 트랜잭션 시작
+        O -> K: stock.restore 이벤트 발행
+        K -> P: stock.restore 수신
+        P -> P: 예약 재고 복구
+'        P -> K: stock.released 이벤트 발행
+        O -> O: 주문 상태 → CANCELLED
+    end
+    
+else 재고 부족
+    P -> K: stock.lacked 이벤트 발행
+    K -> O: stock.lacked 수신
+    O -> O: 주문 상태 → CANCELLED
+end
+
+@enduml

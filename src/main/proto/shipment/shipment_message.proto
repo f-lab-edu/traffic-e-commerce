@@ -6,6 +6,25 @@ option java_multiple_files = true;
 option java_package = "com.ecommerce.proto";
 option java_outer_classname = "ShipmentMessage";
 
+// 배송 요청 이벤트
+message ShipmentRequestedEvent {
+  string order_uuid = 1;                    // 주문 UUID
+  string user_id = 2;                       // 주문자 ID
+  string delivery_address = 3;              // 배송 주소
+  string contact_phone = 4;                 // 연락처
+  repeated Items items = 5;          // 배송할 상품 목록
+  string special_instructions = 7;          // 배송 특별 지시사항 (옵션)
+  int64 requested_dt = 8;                   // 요청 시간 (Unix timestamp)
+}
+
+// 배송 상품
+message Items {
+  string product_uuid = 1;                  // 상품 UUID
+  int32 quantity = 2;                       // 수량
+  double price = 3;                         // 가격
+  string product_name = 4;                  // 상품명
+}
+
 // 배송 생성 이벤트
 message ShipmentCreatedEvent {
   string order_uuid = 1;
